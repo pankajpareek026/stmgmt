@@ -45,6 +45,185 @@ interface TemporaryWorker {
   isTemporary: true
 }
 
+const AttendanceRow = ({
+  employee,
+  attendance,
+  updateAttendance
+}: {
+  employee: Employee | TemporaryWorker
+  attendance: AttendanceEntry
+  updateAttendance: (id: string, updates: Partial<AttendanceEntry>) => void
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const status = attendance?.status || "present"
+  const isTemp = "isTemporary" in employee
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-3 transition-colors max-w-full overflow-hidden",
+        status === "absent" ? "bg-muted/30" : "bg-card"
+      )}
+    >
+      <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+        {/* Employee Info */}
+        <div className="flex items-center justify-between xl:w-[30%] text-left min-w-0">
+          <div className="flex items-center gap-3 min-w-0 w-full">
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {(employee.name || "Unknown").split(" ").map((n: string) => n[0]).join("")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="font-medium text-sm flex items-center gap-1.5 truncate">
+                {employee.name || "Unknown"}
+                {isTemp && <Badge variant="secondary" className="px-1 py-0 text-[10px] h-4">Temp</Badge>}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="truncate">{employee.role}</span>
+                <span className="w-px h-3 bg-border" />
+                <span className="shrink-0">₹{employee.dailyRate}/d</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Controls */}
+        <div className="flex flex-wrap items-center gap-2 xl:ml-auto">
+          <div className="flex items-center bg-secondary/50 rounded-md p-1 gap-1 shrink-0">
+            <button
+              onClick={() => updateAttendance(employee.id, { status: "present", hours: 8 })}
+              className={cn(
+                "p-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1",
+                status === "present" ? "bg-background shadow-sm text-green-600" : "text-muted-foreground hover:bg-background/50"
+              )}
+            >
+              <Check className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Present</span>
+            </button>
+            <button
+              onClick={() => updateAttendance(employee.id, { status: "absent", hours: 0 })}
+              className={cn(
+                "p-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1",
+                status === "absent" ? "bg-background shadow-sm text-red-600" : "text-muted-foreground hover:bg-background/50"
+              )}
+            >
+              <X className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Absent</span>
+            </button>
+            <button
+              onClick={() => updateAttendance(employee.id, { status: "half-day", hours: 4 })}
+              className={cn(
+                "p-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1",
+                status === "half-day" ? "bg-background shadow-sm text-yellow-600" : "text-muted-foreground hover:bg-background/50"
+              )}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Half</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Expand Toggle - Always visible if status suggests more info needed */}
+      {(status === "present" || status === "half-day") && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 ml-auto xl:ml-2"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className={cn("transition-transform", isExpanded && "rotate-180")}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </Button>
+      )}
+
+      {/* Expandable Details */}
+      {
+        (status === "present" || status === "half-day") && isExpanded && (
+          <div className="mt-3 pt-3 border-t space-y-3">
+            {/* Time Inputs - Now in collapsible area */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground w-16">Time:</span>
+                <Input
+                  type="time"
+                  value={attendance?.checkIn || "08:00"}
+                  onChange={(e) => updateAttendance(employee.id, { checkIn: e.target.value })}
+                  className="h-8 w-24 text-xs px-2 bg-background"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="time"
+                  value={attendance?.checkOut || "17:00"}
+                  onChange={(e) => updateAttendance(employee.id, { checkOut: e.target.value })}
+                  className="h-8 w-24 text-xs px-2 bg-background"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-2">
+                <Select
+                  value={attendance?.paymentSplit || "full-owner"}
+                  onValueChange={(value: any) => {
+                    if (value === "full-owner") updateAttendance(employee.id, { paymentSplit: value, ownerPay: 100, contractorPay: 0 })
+                    else if (value === "full-contractor") updateAttendance(employee.id, { paymentSplit: value, ownerPay: 0, contractorPay: 100 })
+                    else if (value === "half-half") updateAttendance(employee.id, { paymentSplit: value, ownerPay: 50, contractorPay: 50 })
+                    else updateAttendance(employee.id, { paymentSplit: value })
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full-owner">100% Owner</SelectItem>
+                    <SelectItem value="full-contractor">100% Contractor</SelectItem>
+                    <SelectItem value="half-half">50/50 Split</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+                {attendance?.paymentSplit === "custom" && (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="Own%"
+                      value={attendance?.ownerPay || 0}
+                      onChange={(e) => updateAttendance(employee.id, { ownerPay: Number(e.target.value), contractorPay: 100 - Number(e.target.value) })}
+                      className="h-8 w-14 text-xs px-1"
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="Cont%"
+                      value={attendance?.contractorPay || 0}
+                      onChange={(e) => updateAttendance(employee.id, { contractorPay: Number(e.target.value), ownerPay: 100 - Number(e.target.value) })}
+                      className="h-8 w-14 text-xs px-1"
+                    />
+                  </div>
+                )}
+              </div>
+              <Input
+                placeholder="Work description..."
+                value={attendance?.workDescription || ""}
+                onChange={(e) => updateAttendance(employee.id, { workDescription: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+        )
+      }
+    </div >
+  )
+}
+
 export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSuccess }: MarkAttendanceDialogProps) {
   const [selectedProject, setSelectedProject] = useState(projectId || "")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
@@ -63,7 +242,10 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
   const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
   const { data: employees, loading: employeesLoading } = useApi<Employee[]>("/employees")
 
-  const projectEmployees = (employees || []).filter((emp: Employee) => emp.projectId === selectedProject)
+  const projectEmployees = (employees || []).filter((emp: Employee) => {
+    const pId = typeof emp.projectId === 'object' && emp.projectId !== null ? (emp.projectId as any).id : emp.projectId
+    return pId === selectedProject
+  })
   const allWorkers = [...projectEmployees, ...temporaryWorkers]
 
   const handleAddWorker = () => {
@@ -159,9 +341,6 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
 
     setIsSaving(true)
     try {
-      // In a real scenario, we might have a bulk endpoint or loop
-      // Assuming the backend handles bulk or we send one by one
-      // For now, let's just send the first one as a test or assume /attendance accepts array
       await apiService.post("/attendance", { records })
       toast.success("Attendance saved successfully")
       onSaveSuccess?.()
@@ -176,14 +355,14 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2 shrink-0 border-b">
           <DialogTitle>Mark Daily Attendance</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
           {/* Project and Date Selection */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 mb-6">
             <div className="space-y-2">
               <Label>Select Project</Label>
               <Select value={selectedProject} onValueChange={setSelectedProject}>
@@ -206,10 +385,10 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
             </div>
           </div>
 
-          {selectedProject && (
+          {selectedProject ? (
             <>
               {/* Bulk Actions */}
-              <div className="flex flex-wrap gap-2 pb-4 border-b">
+              <div className="flex flex-wrap gap-2 pb-4 border-b mb-4 sticky top-0 bg-background z-10 pt-1">
                 <Button onClick={markAllPresent} variant="outline" size="sm" className="gap-2 bg-transparent">
                   <Check className="h-4 w-4 text-green-500" />
                   Mark All Present
@@ -235,7 +414,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
               </div>
 
               {showAddWorker && (
-                <Card className="bg-muted/50">
+                <Card className="bg-muted/50 mb-4">
                   <CardContent className="p-4">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                       <UserPlus className="h-4 w-4" />
@@ -305,234 +484,40 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
               )}
 
               {/* Employee Attendance List */}
-              <div className="space-y-3">
-                {allWorkers.map((employee) => {
-                  const attendance = attendanceData[employee.id]
-                  const status = attendance?.status || "present"
-                  const isTemp = "isTemporary" in employee
-
-                  return (
-                    <Card key={employee.id} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        {/* Employee Header */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                                {employee.name
-                                  .split(" ")
-                                  .map((n: string) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold flex items-center gap-2">
-                                {employee.name}
-                                {isTemp && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Temp
-                                  </Badge>
-                                )}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{employee.role}</p>
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            ₹{employee.dailyRate}/day
-                          </Badge>
-                        </div>
-
-                        {/* Attendance Status Buttons */}
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                          <Button
-                            variant={status === "present" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => updateAttendance(employee.id, { status: "present", hours: 8 })}
-                            className={cn(status === "present" && "bg-green-500 hover:bg-green-600 border-green-500")}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Present
-                          </Button>
-                          <Button
-                            variant={status === "absent" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => updateAttendance(employee.id, { status: "absent", hours: 0 })}
-                            className={cn(status === "absent" && "bg-red-500 hover:bg-red-600 border-red-500")}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Absent
-                          </Button>
-                          <Button
-                            variant={status === "half-day" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => updateAttendance(employee.id, { status: "half-day", hours: 4 })}
-                            className={cn(
-                              status === "half-day" && "bg-yellow-500 hover:bg-yellow-600 border-yellow-500",
-                            )}
-                          >
-                            <Clock className="h-4 w-4 mr-1" />
-                            Half Day
-                          </Button>
-                        </div>
-
-                        {/* Additional Details for Present/Half-Day */}
-                        {(status === "present" || status === "half-day") && (
-                          <div className="space-y-3 pt-3 border-t">
-                            {/* Time Entry */}
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-xs">Check In</Label>
-                                <Input
-                                  type="time"
-                                  value={attendance?.checkIn || "08:00"}
-                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAttendance(employee.id, { checkIn: e.target.value })}
-                                  className="h-9"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Check Out</Label>
-                                <Input
-                                  type="time"
-                                  value={attendance?.checkOut || "17:00"}
-                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAttendance(employee.id, { checkOut: e.target.value })}
-                                  className="h-9"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Work Description */}
-                            <div className="space-y-2">
-                              <Label className="text-xs">Work Description (Optional)</Label>
-                              <Textarea
-                                placeholder="Describe what work this employee did today..."
-                                value={attendance?.workDescription || ""}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateAttendance(employee.id, { workDescription: e.target.value })}
-                                className="min-h-[60px] resize-none text-sm"
-                              />
-                            </div>
-
-                            {/* Payment Split */}
-                            <div className="space-y-2">
-                              <Label className="text-xs">Payment Split</Label>
-                              <Select
-                                value={attendance?.paymentSplit || "full-owner"}
-                                onValueChange={(value: "full-owner" | "full-contractor" | "half-half" | "custom") => {
-                                  if (value === "full-owner") {
-                                    updateAttendance(employee.id, {
-                                      paymentSplit: value,
-                                      ownerPay: 100,
-                                      contractorPay: 0,
-                                    })
-                                  } else if (value === "full-contractor") {
-                                    updateAttendance(employee.id, {
-                                      paymentSplit: value,
-                                      ownerPay: 0,
-                                      contractorPay: 100,
-                                    })
-                                  } else if (value === "half-half") {
-                                    updateAttendance(employee.id, {
-                                      paymentSplit: value,
-                                      ownerPay: 50,
-                                      contractorPay: 50,
-                                    })
-                                  } else {
-                                    updateAttendance(employee.id, { paymentSplit: value })
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="full-owner">100% Owner</SelectItem>
-                                  <SelectItem value="full-contractor">100% Contractor</SelectItem>
-                                  <SelectItem value="half-half">50% Owner + 50% Contractor</SelectItem>
-                                  <SelectItem value="custom">Custom Split</SelectItem>
-                                </SelectContent>
-                              </Select>
-
-                              {/* Custom Payment Split */}
-                              {attendance?.paymentSplit === "custom" && (
-                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Owner %</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      max="100"
-                                      value={attendance?.ownerPay || 0}
-                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        updateAttendance(employee.id, {
-                                          ownerPay: Number(e.target.value),
-                                          contractorPay: 100 - Number(e.target.value),
-                                        })
-                                      }
-                                      className="h-9"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Contractor %</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      max="100"
-                                      value={attendance?.contractorPay || 0}
-                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        updateAttendance(employee.id, {
-                                          contractorPay: Number(e.target.value),
-                                          ownerPay: 100 - Number(e.target.value),
-                                        })
-                                      }
-                                      className="h-9"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Payment Breakdown */}
-                              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                                <span>
-                                  Owner: ₹{((employee.dailyRate * (attendance?.ownerPay || 100)) / 100).toFixed(0)}
-                                </span>
-                                <span>
-                                  Contractor: ₹
-                                  {((employee.dailyRate * (attendance?.contractorPay || 0)) / 100).toFixed(0)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-
-              {/* Save Button */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Attendance"
-                  )}
-                </Button>
+              <div className="space-y-2">
+                {allWorkers.map((employee) => (
+                  <AttendanceRow
+                    key={employee.id}
+                    employee={employee}
+                    attendance={attendanceData[employee.id]}
+                    updateAttendance={updateAttendance}
+                  />
+                ))}
               </div>
             </>
-          )}
-
-          {!selectedProject && (
+          ) : (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Select a project to mark attendance</p>
             </div>
           )}
+        </div>
+
+        {/* Footer Area */}
+        <div className="p-6 pt-2 border-t shrink-0 flex justify-end gap-2 bg-background">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Attendance"
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

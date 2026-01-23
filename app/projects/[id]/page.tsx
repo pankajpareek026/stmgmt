@@ -91,7 +91,10 @@ function ProjectDetailContent({ id }: { id: string }) {
     )
   }
 
-  const projectEmployees = (employeesData || []).filter((e: Employee) => e.projectId === id)
+  const projectEmployees = (employeesData || []).filter((e: Employee) => {
+    const pId = typeof e.projectId === 'object' && e.projectId !== null ? (e.projectId as any).id : e.projectId
+    return pId === id
+  })
   const projectExpenses = (expensesData || []).filter((e: Expense) => e.projectId === id)
   const projectAttendance = (attendanceData || []).filter((a: Attendance) => a.projectId === id)
   const budgetPercent = project.budget > 0 ? (project.spent / project.budget) * 100 : 0

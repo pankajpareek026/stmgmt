@@ -35,17 +35,22 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!formData.name || !formData.dailyRate || !formData.projectId) {
-            toast.error("Please fill in all required fields")
+        // Validate required fields (matching API requirements)
+        if (!formData.name || !formData.dailyRate || !formData.email || !formData.phone) {
+            toast.error("Please fill in all required fields: Name, Role, Rate, Phone, Email")
             return
         }
 
         setIsSaving(true)
         try {
-            await apiService.post("/employees", {
+            // Prepare payload - handle empty projectId
+            const payload = {
                 ...formData,
-                dailyRate: Number(formData.dailyRate)
-            })
+                dailyRate: Number(formData.dailyRate),
+                projectId: formData.projectId || undefined // Send undefined if empty to avoid CastError
+            }
+
+            await apiService.post("/employees", payload)
             toast.success("Employee added successfully")
             onSaveSuccess?.()
             onOpenChange(false)
@@ -118,7 +123,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="projectId">Assign Project *</Label>
+                        <Label htmlFor="projectId">Assign Project (Optional)</Label>
                         <Select
                             value={formData.projectId}
                             onValueChange={(value: string) => setFormData({ ...formData, projectId: value })}
@@ -136,17 +141,18 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone">Phone Number *</Label>
                         <Input
                             id="phone"
                             type="tel"
                             placeholder="9876543210"
                             value={formData.phone}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, phone: e.target.value })}
+                            required
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
+                        <Label htmlFor="email">Email Address *</Label>
                         <Input
                             id="email"
                             type="email"

@@ -3,8 +3,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { MobileNav } from "@/components/mobile-nav"
-import { DesktopSidebar } from "@/components/desktop-sidebar"
+import { AppShell } from "@/components/app-shell"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -41,15 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
-        <div className="min-h-screen bg-background">
-          <DesktopSidebar />
-          <MobileNav />
-
-          {/* Main content area with padding for navigation */}
-          <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0">
-            <div className="container mx-auto p-4 lg:p-6">{children}</div>
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
         <Analytics />
       </body>
     </html>

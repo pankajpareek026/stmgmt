@@ -25,7 +25,7 @@ export interface Employee {
   status: "active" | "inactive" | "on-leave"
   joinDate: string
   skills: string[]
-  projectId?: string
+  projectId?: string | { id: string; name: string } | any
 }
 
 export interface Attendance {

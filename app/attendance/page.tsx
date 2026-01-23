@@ -44,12 +44,31 @@ function AttendanceContent() {
   const safeAttendance = attendanceData || []
   const safeProjects = projectsData || []
 
+  // Helper functions to handle both flat mock data and populated API data
+  const getEmployeeName = (att: any) => {
+    if (att.employeeName) return att.employeeName
+    return att.employeeId?.name || "Unknown Employee"
+  }
+
+  const getProjectName = (att: any) => {
+    if (att.projectName) return att.projectName
+    return att.projectId?.name || "Unknown Project"
+  }
+
   const filteredAttendance = safeAttendance.filter((attendance: Attendance) => {
+    const empName = getEmployeeName(attendance)
+    const projName = getProjectName(attendance)
+
     const matchesSearch =
-      attendance.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      attendance.projectName.toLowerCase().includes(searchQuery.toLowerCase())
+      empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      projName.toLowerCase().includes(searchQuery.toLowerCase())
+
     const matchesStatus = statusFilter === "all" || attendance.status === statusFilter
-    const matchesProject = projectFilter === "all" || attendance.projectId === projectFilter
+
+    // For project filter: can be string ID or object with _id/id
+    const attProjId = typeof attendance.projectId === 'object' ? (attendance.projectId as any)._id || (attendance.projectId as any).id : attendance.projectId
+    const matchesProject = projectFilter === "all" || attProjId === projectFilter
+
     return matchesSearch && matchesStatus && matchesProject
   })
 
@@ -199,38 +218,41 @@ function AttendanceContent() {
             </TableHeader>
             <TableBody>
               {filteredAttendance.length > 0 ? (
-                filteredAttendance.map((attendance: Attendance) => (
-                  <TableRow key={attendance.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {attendance.employeeName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{attendance.employeeName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{attendance.projectName}</TableCell>
-                    <TableCell>{new Date(attendance.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{attendance.checkIn}</TableCell>
-                    <TableCell>{attendance.checkOut}</TableCell>
-                    <TableCell>
-                      <span className="font-semibold">{attendance.hours}h</span>
-                      {attendance.overtime > 0 && (
-                        <span className="text-xs text-primary ml-1">(+{attendance.overtime}h OT)</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
-                        {attendance.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredAttendance.map((attendance: Attendance) => {
+                  const empName = getEmployeeName(attendance)
+                  return (
+                    <TableRow key={attendance.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {empName
+                                .split(" ")
+                                .map((n: string) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{empName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{getProjectName(attendance)}</TableCell>
+                      <TableCell>{new Date(attendance.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{attendance.checkIn}</TableCell>
+                      <TableCell>{attendance.checkOut}</TableCell>
+                      <TableCell>
+                        <span className="font-semibold">{attendance.hours}h</span>
+                        {attendance.overtime > 0 && (
+                          <span className="text-xs text-primary ml-1">(+{attendance.overtime}h OT)</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
+                          {attendance.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground">
@@ -246,53 +268,56 @@ function AttendanceContent() {
       {/* Attendance Cards - Mobile */}
       <div className="md:hidden space-y-4">
         {filteredAttendance.length > 0 ? (
-          filteredAttendance.map((attendance: Attendance) => (
-            <Card key={attendance.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                        {attendance.employeeName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
+          filteredAttendance.map((attendance: Attendance) => {
+            const empName = getEmployeeName(attendance)
+            return (
+              <Card key={attendance.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                          {empName
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold">{empName}</p>
+                        <p className="text-xs text-muted-foreground">{getProjectName(attendance)}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
+                      {attendance.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="font-semibold">{attendance.employeeName}</p>
-                      <p className="text-xs text-muted-foreground">{attendance.projectName}</p>
+                      <p className="text-muted-foreground text-xs">Date</p>
+                      <p className="font-medium">{new Date(attendance.date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Hours</p>
+                      <p className="font-semibold">
+                        {attendance.hours}h
+                        {attendance.overtime > 0 && <span className="text-primary ml-1">(+{attendance.overtime}h)</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Check In</p>
+                      <p className="font-medium">{attendance.checkIn}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Check Out</p>
+                      <p className="font-medium">{attendance.checkOut}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
-                    {attendance.status}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Date</p>
-                    <p className="font-medium">{new Date(attendance.date).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Hours</p>
-                    <p className="font-semibold">
-                      {attendance.hours}h
-                      {attendance.overtime > 0 && <span className="text-primary ml-1">(+{attendance.overtime}h)</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Check In</p>
-                    <p className="font-medium">{attendance.checkIn}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Check Out</p>
-                    <p className="font-medium">{attendance.checkOut}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            )
+          })
         ) : (
           <Card>
             <CardContent className="p-8 text-center">
