@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { Project, Employee } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
@@ -21,6 +21,7 @@ interface EditEmployeeDialogProps {
 
 export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess }: EditEmployeeDialogProps) {
     const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
 
     const [formData, setFormData] = useState({
@@ -34,23 +35,27 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
     })
 
     useEffect(() => {
-        if (open && employee) {
-            setFormData({
-                name: employee.name,
-                role: employee.role,
-                phone: employee.phone,
-                email: employee.email,
-                dailyRate: employee.dailyRate.toString(),
-                status: employee.status,
-                projectId: employee.projectId,
-            })
+        if (open) {
+            setError(null)
+            if (employee) {
+                setFormData({
+                    name: employee.name,
+                    role: employee.role,
+                    phone: employee.phone,
+                    email: employee.email,
+                    dailyRate: employee.dailyRate.toString(),
+                    status: employee.status,
+                    projectId: employee.projectId,
+                })
+            }
         }
     }, [open, employee])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
         if (!formData.name || !formData.dailyRate || !formData.projectId) {
-            toast.error("Please fill in all required fields")
+            setError("Please fill in all required fields")
             return
         }
 
@@ -64,7 +69,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
-            toast.error("Failed to update employee")
+            setError(err instanceof Error ? err.message : "Failed to update employee")
             console.error(err)
         } finally {
             setIsSaving(false)
@@ -77,6 +82,12 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
                 <DialogHeader>
                     <DialogTitle>Edit Employee</DialogTitle>
                 </DialogHeader>
+                {error && (
+                    <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <p>{error}</p>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="edit-name">Full Name *</Label>

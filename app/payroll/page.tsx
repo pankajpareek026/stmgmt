@@ -55,7 +55,7 @@ function PayrollContent() {
     }
   }
 
-  if (loading) {
+  if (loading && !payrollData) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -75,37 +75,44 @@ function PayrollContent() {
 
   const safePayroll = payrollData || []
 
+  // Flatten payments for the transaction view
+  const flattenedTransactions = safePayroll.flatMap((doc: any) =>
+    (doc.payments || []).map((p: any) => ({
+      ...p,
+      id: p._id || p.id,
+      employeeId: doc.employeeId,
+      period: doc.period,
+      status: doc.status,
+      docId: doc.id || doc._id
+    }))
+  )
+
   // Helper to safely get employee name from populated or mock data
   const getPayrollEmployeeName = (p: any) => {
-    if (p.employeeName) return p.employeeName
     return p.employeeId?.name || "Unknown Employee"
   }
 
   // Helper to safely get period or date
   const getPayrollPeriod = (p: any) => {
-    if (p.period && p.period !== "Flexible") return p.period
-    if (p.paymentDate) {
-      return new Date(p.paymentDate).toLocaleString('default', { month: 'short', year: 'numeric' })
-    }
-    return "Unknown Period"
+    return p.period || "Unknown Period"
   }
 
   const periods = Array.from(new Set(safePayroll.map((p: any) => getPayrollPeriod(p))))
 
-  const filteredPayroll = safePayroll.filter((payroll: Payroll) => {
-    const empName = getPayrollEmployeeName(payroll)
-    const periodName = getPayrollPeriod(payroll)
+  const filteredTransactions = flattenedTransactions.filter((tx: any) => {
+    const empName = getPayrollEmployeeName(tx)
+    const periodName = getPayrollPeriod(tx)
 
     const matchesSearch = (empName || "").toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "all" || payroll.status === statusFilter
+    const matchesStatus = statusFilter === "all" || tx.status === statusFilter
     const matchesPeriod = periodFilter === "all" || periodName === periodFilter
     return matchesSearch && matchesStatus && matchesPeriod
   })
 
-  const totalBasePay = filteredPayroll.reduce((sum: number, p: Payroll) => sum + (p.basePay || 0), 0)
-  const totalNetPay = filteredPayroll.reduce((sum: number, p: Payroll) => sum + p.netPay, 0)
-  const totalOvertimePay = filteredPayroll.reduce((sum: number, p: Payroll) => sum + (p.overtimePay || 0), 0)
-  const totalBonus = filteredPayroll.reduce((sum: number, p: Payroll) => sum + (p.bonus || 0), 0)
+  const totalNetPay = filteredTransactions.reduce((sum: number, tx: any) => sum + tx.amount, 0)
+  const totalBasePay = 0 // Combined in monthly aggregates
+  const totalOvertimePay = 0
+  const totalBonus = 0
 
   return (
     <div className="space-y-6">
@@ -179,7 +186,7 @@ function PayrollContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Records</p>
-                <p className="text-2xl font-bold">{filteredPayroll.length}</p>
+                <p className="text-2xl font-bold">{filteredTransactions.length}</p>
               </div>
             </div>
           </CardContent>
@@ -244,12 +251,12 @@ function PayrollContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPayroll.length > 0 ? (
-                filteredPayroll.map((payroll: any) => {
-                  const empName = getPayrollEmployeeName(payroll)
-                  const periodName = getPayrollPeriod(payroll)
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((tx: any) => {
+                  const empName = getPayrollEmployeeName(tx)
+                  const periodName = getPayrollPeriod(tx)
                   return (
-                    <TableRow key={payroll.id || payroll._id}>
+                    <TableRow key={tx.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
@@ -262,36 +269,25 @@ function PayrollContent() {
                           </Avatar>
                           <div>
                             <span className="font-medium block">{empName}</span>
-                            {payroll.description && <span className="text-xs text-muted-foreground">{payroll.description}</span>}
+                            {tx.description && <span className="text-xs text-muted-foreground">{tx.description}</span>}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{periodName}</TableCell>
-                      <TableCell><Badge variant="secondary" className="font-normal">{payroll.paymentType || "Salary"}</Badge></TableCell>
-                      <TableCell className="font-bold">₹{payroll.netPay.toLocaleString()}</TableCell>
+                      <TableCell><Badge variant="secondary" className="font-normal">Payment</Badge></TableCell>
+                      <TableCell className="font-bold">₹{tx.amount.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn(statusColors[payroll.status as keyof typeof statusColors])}>
-                          {payroll.status}
+                        <Badge variant="outline" className={cn(statusColors[tx.status as keyof typeof statusColors])}>
+                          {tx.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {payroll.status !== "paid" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 text-green-500 border-green-500/20 bg-transparent"
-                              onClick={() => handleStatusUpdate(payroll.id || payroll._id, "paid")}
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Mark Paid
-                            </Button>
-                          )}
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-8 text-destructive border-destructive/20 bg-transparent"
-                            onClick={() => handleDelete(payroll.id || payroll._id)}
+                            onClick={() => handleDelete(tx.docId)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -314,12 +310,12 @@ function PayrollContent() {
 
       {/* Payroll Cards - Mobile */}
       <div className="md:hidden space-y-4">
-        {filteredPayroll.length > 0 ? (
-          filteredPayroll.map((payroll: any) => {
-            const empName = getPayrollEmployeeName(payroll)
-            const periodName = getPayrollPeriod(payroll)
+        {filteredTransactions.length > 0 ? (
+          filteredTransactions.map((tx: any) => {
+            const empName = getPayrollEmployeeName(tx)
+            const periodName = getPayrollPeriod(tx)
             return (
-              <Card key={payroll.id || payroll._id}>
+              <Card key={tx.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -339,85 +335,38 @@ function PayrollContent() {
                         </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className={cn(statusColors[payroll.status as keyof typeof statusColors])}>
-                      {payroll.status}
+                    <Badge variant="outline" className={cn(statusColors[tx.status as keyof typeof statusColors])}>
+                      {tx.status}
                     </Badge>
                   </div>
 
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Days Worked</span>
-                      <span className="font-medium">{payroll.daysWorked}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Base Pay</span>
-                      <span className="font-medium">${payroll.basePay.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Overtime</span>
-                      <span className="font-medium text-blue-500">+${payroll.overtimePay.toLocaleString()}</span>
-                    </div>
-                    {payroll.bonus > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Bonus</span>
-                        <span className="font-medium text-green-500">+${payroll.bonus.toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Deductions</span>
-                      <span className="font-medium text-red-500">-${payroll.deductions.toLocaleString()}</span>
-                    </div>
+                  <div className="flex items-center justify-between py-2 border-t border-b border-dashed">
+                    <span className="text-sm text-muted-foreground">Amount</span>
+                    <span className="font-bold">₹{tx.amount.toLocaleString()}</span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <span className="font-semibold">Net Pay</span>
-                    <span className="text-xl font-bold text-primary">${payroll.netPay.toLocaleString()}</span>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-destructive border-destructive/20 bg-transparent"
+                      onClick={() => handleDelete(tx.docId)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             )
           })
         ) : (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">No payroll records found</p>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12 bg-muted/50 rounded-lg border-2 border-dashed">
+            <DollarSign className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-20" />
+            <p className="text-muted-foreground">No payroll records found</p>
+          </div>
         )}
       </div>
-
-      {/* Payroll Summary */}
-      {filteredPayroll.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Payroll Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Total Days Worked</p>
-                <p className="text-2xl font-bold">{filteredPayroll.reduce((sum: number, p: Payroll) => sum + p.daysWorked, 0)}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Total Bonuses</p>
-                <p className="text-2xl font-bold text-green-500">${totalBonus.toLocaleString()}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Total Deductions</p>
-                <p className="text-2xl font-bold text-red-500">
-                  ${filteredPayroll.reduce((sum: number, p: Payroll) => sum + p.deductions, 0).toLocaleString()}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Avg Net Pay</p>
-                <p className="text-2xl font-bold">
-                  ${Math.round(totalNetPay / filteredPayroll.length).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       <ProcessPayrollDialog
         open={showProcessPayroll}
         onOpenChange={setShowProcessPayroll}

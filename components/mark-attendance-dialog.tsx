@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Check, X, Users, Clock, UserPlus, Loader2 } from "lucide-react"
+import { Check, X, Users, Clock, UserPlus, Loader2, AlertCircle } from "lucide-react"
 import { useApi } from "@/hooks/use-api"
 import { apiService } from "@/lib/api-service"
 import { Project, Employee } from "@/lib/mock-data"
@@ -229,6 +229,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceEntry>>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [temporaryWorkers, setTemporaryWorkers] = useState<TemporaryWorker[]>([])
   const [showAddWorker, setShowAddWorker] = useState(false)
@@ -241,6 +242,11 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
 
   const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
   const { data: employees, loading: employeesLoading } = useApi<Employee[]>("/employees")
+
+  // Reset error when dialog opens
+  useEffect(() => {
+    if (open) setError(null)
+  }, [open])
 
   const projectEmployees = (employees || []).filter((emp: Employee) => {
     const pId = typeof emp.projectId === 'object' && emp.projectId !== null ? (emp.projectId as any).id : emp.projectId
@@ -324,7 +330,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
 
   const handleSave = async () => {
     if (!selectedProject) {
-      toast.error("Please select a project")
+      setError("Please select a project")
       return
     }
 
@@ -335,18 +341,18 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
     }))
 
     if (records.length === 0) {
-      toast.error("No attendance data to save")
+      setError("No attendance data to save")
       return
     }
 
-    setIsSaving(true)
     try {
+      setError(null)
       await apiService.post("/attendance", { records })
       toast.success("Attendance saved successfully")
       onSaveSuccess?.()
       onOpenChange(false)
     } catch (err) {
-      toast.error("Failed to save attendance")
+      setError(err instanceof Error ? err.message : "Failed to save attendance")
       console.error(err)
     } finally {
       setIsSaving(false)
@@ -359,6 +365,13 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
         <DialogHeader className="p-6 pb-2 shrink-0 border-b">
           <DialogTitle>Mark Daily Attendance</DialogTitle>
         </DialogHeader>
+
+        {error && (
+          <div className="mx-6 mt-4 bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <p>{error}</p>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
           {/* Project and Date Selection */}

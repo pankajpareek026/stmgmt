@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { Project } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
@@ -20,6 +20,7 @@ interface AddEmployeeDialogProps {
 
 export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmployeeDialogProps) {
     const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
 
     const [formData, setFormData] = useState({
@@ -33,11 +34,18 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
         projectId: "",
     })
 
+    // Reset error when dialog opens
+    useEffect(() => {
+        if (open) setError(null)
+    }, [open])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
+
         // Validate required fields (matching API requirements)
         if (!formData.name || !formData.dailyRate || !formData.email || !formData.phone) {
-            toast.error("Please fill in all required fields: Name, Role, Rate, Phone, Email")
+            setError("Please fill in all required fields: Name, Role, Rate, Phone, Email")
             return
         }
 
@@ -65,7 +73,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                 projectId: "",
             })
         } catch (err) {
-            toast.error("Failed to add employee")
+            setError(err instanceof Error ? err.message : "Failed to add employee")
             console.error(err)
         } finally {
             setIsSaving(false)
@@ -78,6 +86,12 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                 <DialogHeader>
                     <DialogTitle>Add New Employee</DialogTitle>
                 </DialogHeader>
+                {error && (
+                    <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <p>{error}</p>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Full Name *</Label>

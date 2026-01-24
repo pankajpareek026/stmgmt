@@ -6,67 +6,52 @@ const payrollSchema = new mongoose.Schema({
         ref: 'Employee',
         required: true
     },
-    projectId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Project',
-        required: false
-    },
-    period: {
-        type: String,
-        required: false
-    },
-    paymentDate: {
-        type: Date,
-        required: true,
-        default: Date.now
-    },
-    paymentType: {
-        type: String,
-        enum: ['salary', 'advance', 'adhoc'],
-        default: 'adhoc'
-    },
-    daysWorked: {
-        type: Number,
-        required: false,
-        default: 0
-    },
-    dailyRate: {
-        type: Number,
-        required: false,
-        default: 0
-    },
-    basePay: {
-        type: Number,
-        required: false,
-        default: 0
-    },
-    overtimePay: {
-        type: Number,
-        default: 0
-    },
-    bonus: {
-        type: Number,
-        default: 0
-    },
-    deductions: {
-        type: Number,
-        default: 0
-    },
-    netPay: { // acts as total Amount
+    month: {
         type: Number,
         required: true
     },
-    description: {
+    year: {
+        type: Number,
+        required: true
+    },
+    period: {
         type: String,
-        default: ""
+        required: true // e.g., "January 2026"
+    },
+    payments: [{
+        amount: {
+            type: Number,
+            required: true
+        },
+        paymentDate: {
+            type: Date,
+            required: true,
+            default: Date.now
+        },
+        projectId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Project',
+            required: false
+        },
+        description: {
+            type: String,
+            default: ""
+        }
+    }],
+    totalPaid: {
+        type: Number,
+        default: 0
     },
     status: {
         type: String,
         enum: ['pending', 'processing', 'paid'],
-        default: 'pending'
+        default: 'paid'
     }
 }, {
     timestamps: true
 });
+
+// Create a compound index for efficient lookups
+payrollSchema.index({ employeeId: 1, month: 1, year: 1 }, { unique: true });
 
 export default mongoose.models.Payroll || mongoose.model('Payroll', payrollSchema);

@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface NewProjectDialogProps {
     open: boolean
@@ -19,6 +20,7 @@ interface NewProjectDialogProps {
 
 export function NewProjectDialog({ open, onOpenChange, onSaveSuccess }: NewProjectDialogProps) {
     const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const [formData, setFormData] = useState({
         name: "",
@@ -31,10 +33,16 @@ export function NewProjectDialog({ open, onOpenChange, onSaveSuccess }: NewProje
         description: "",
     })
 
+    // Reset error when dialog opens
+    useEffect(() => {
+        if (open) setError(null)
+    }, [open])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
         if (!formData.name || !formData.location || !formData.budget) {
-            toast.error("Please fill in all required fields")
+            setError("Please fill in all required fields")
             return
         }
 
@@ -61,7 +69,7 @@ export function NewProjectDialog({ open, onOpenChange, onSaveSuccess }: NewProje
                 description: "",
             })
         } catch (err) {
-            toast.error("Failed to create project")
+            setError(err instanceof Error ? err.message : "Failed to create project")
             console.error(err)
         } finally {
             setIsSaving(false)
@@ -74,6 +82,12 @@ export function NewProjectDialog({ open, onOpenChange, onSaveSuccess }: NewProje
                 <DialogHeader>
                     <DialogTitle>Create New Project</DialogTitle>
                 </DialogHeader>
+                {error && (
+                    <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 mb-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <p>{error}</p>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Project Name *</Label>

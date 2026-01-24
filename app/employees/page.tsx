@@ -17,6 +17,7 @@ function EmployeesContent() {
   const [showAddEmployee, setShowAddEmployee] = useState(false)
 
   const { data: employees, loading, error, refresh } = useApi<Employee[]>("/employees")
+  const { data: allStats } = useApi<any>("/employees/stats")
 
   if (loading) {
     return (
@@ -135,7 +136,11 @@ function EmployeesContent() {
       {filteredEmployees.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredEmployees.map((employee: Employee) => (
-            <EmployeeCard key={employee.id} employee={employee} />
+            <EmployeeCard
+              key={employee.id}
+              employee={employee}
+              stats={allStats?.data?.[employee.id || (employee as any)._id]}
+            />
           ))}
         </div>
       ) : (

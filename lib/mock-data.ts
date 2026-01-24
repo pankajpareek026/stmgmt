@@ -44,16 +44,17 @@ export interface Attendance {
 
 export interface Payroll {
   id: string
-  employeeId: string
-  employeeName: string
+  employeeId: string | any
+  month: number
+  year: number
   period: string
-  daysWorked: number
-  dailyRate: number
-  basePay: number
-  overtimePay: number
-  bonus: number
-  deductions: number
-  netPay: number
+  payments: {
+    amount: number
+    paymentDate: string
+    projectId?: string | any
+    description?: string
+  }[]
+  totalPaid: number
   status: "pending" | "paid" | "processing"
 }
 
@@ -200,29 +201,35 @@ export const mockPayroll: Payroll[] = [
   {
     id: "pr1",
     employeeId: "e1",
-    employeeName: "James Wilson",
-    period: "Jan 2024",
-    daysWorked: 22,
-    dailyRate: 350,
-    basePay: 7700,
-    overtimePay: 875,
-    bonus: 500,
-    deductions: 1050,
-    netPay: 8025,
+    month: 0, // Jan
+    year: 2024,
+    period: "January 2024",
+    payments: [
+      {
+        amount: 8025,
+        paymentDate: "2024-01-31",
+        projectId: "p1",
+        description: "Monthly salary"
+      }
+    ],
+    totalPaid: 8025,
     status: "paid",
   },
   {
     id: "pr2",
     employeeId: "e2",
-    employeeName: "Maria Garcia",
-    period: "Jan 2024",
-    daysWorked: 20,
-    dailyRate: 280,
-    basePay: 5600,
-    overtimePay: 420,
-    bonus: 0,
-    deductions: 840,
-    netPay: 5180,
+    month: 0, // Jan
+    year: 2024,
+    period: "January 2024",
+    payments: [
+      {
+        amount: 5180,
+        paymentDate: "2024-01-31",
+        projectId: "p1",
+        description: "Monthly salary"
+      }
+    ],
+    totalPaid: 5180,
     status: "paid",
   },
 ]

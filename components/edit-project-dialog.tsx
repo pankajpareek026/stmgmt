@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { Project } from "@/lib/mock-data"
 import { toast } from "sonner"
@@ -21,6 +21,7 @@ interface EditProjectDialogProps {
 
 export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }: EditProjectDialogProps) {
     const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const [formData, setFormData] = useState({
         name: project.name,
@@ -34,24 +35,28 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }
     })
 
     useEffect(() => {
-        if (open && project) {
-            setFormData({
-                name: project.name,
-                location: project.location,
-                status: project.status,
-                startDate: project.startDate,
-                endDate: project.endDate || "",
-                budget: project.budget.toString(),
-                manager: project.manager,
-                description: project.description || "",
-            })
+        if (open) {
+            setError(null)
+            if (project) {
+                setFormData({
+                    name: project.name,
+                    location: project.location,
+                    status: project.status,
+                    startDate: project.startDate,
+                    endDate: project.endDate || "",
+                    budget: project.budget.toString(),
+                    manager: project.manager,
+                    description: project.description || "",
+                })
+            }
         }
     }, [open, project])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
         if (!formData.name || !formData.location || !formData.budget) {
-            toast.error("Please fill in all required fields")
+            setError("Please fill in all required fields")
             return
         }
 
@@ -65,7 +70,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
-            toast.error("Failed to update project")
+            setError(err instanceof Error ? err.message : "Failed to update project")
             console.error(err)
         } finally {
             setIsSaving(false)
@@ -78,6 +83,12 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }
                 <DialogHeader>
                     <DialogTitle>Edit Project</DialogTitle>
                 </DialogHeader>
+                {error && (
+                    <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 mb-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <p>{error}</p>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="edit-proj-name">Project Name *</Label>

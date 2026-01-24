@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Calendar as CalendarIcon } from "lucide-react"
+import { Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { Employee, Project } from "@/lib/mock-data"
 import { toast } from "sonner"
 import { useApi } from "@/hooks/use-api"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface MarkEmployeeAttendanceDialogProps {
     open: boolean
@@ -28,6 +29,7 @@ export function MarkEmployeeAttendanceDialog({
     onSaveSuccess
 }: MarkEmployeeAttendanceDialogProps) {
     const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const { data: projects } = useApi<Project[]>("/projects")
 
     const [formData, setFormData] = useState({
@@ -47,11 +49,17 @@ export function MarkEmployeeAttendanceDialog({
         }
     }, [currentProjectId])
 
+    // Reset error when dialog opens
+    useEffect(() => {
+        if (open) setError(null)
+    }, [open])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
 
         if (!formData.projectId) {
-            toast.error("Please select a project")
+            setError("Please select a project")
             return
         }
 
@@ -59,7 +67,7 @@ export function MarkEmployeeAttendanceDialog({
         const end = new Date(formData.endDate)
 
         if (end < start) {
-            toast.error("End date cannot be before start date")
+            setError("End date cannot be before start date")
             return
         }
 
@@ -107,7 +115,7 @@ export function MarkEmployeeAttendanceDialog({
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
-            toast.error("Failed to mark attendance")
+            setError(err instanceof Error ? err.message : "Failed to mark attendance")
             console.error(err)
         } finally {
             setIsSaving(false)
@@ -120,6 +128,12 @@ export function MarkEmployeeAttendanceDialog({
                 <DialogHeader>
                     <DialogTitle>Mark Attendance</DialogTitle>
                 </DialogHeader>
+                {error && (
+                    <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 mb-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <p>{error}</p>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
 
                     <div className="space-y-2">
@@ -132,22 +146,22 @@ export function MarkEmployeeAttendanceDialog({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="startDate">Start Date</Label>
-                            <Input
-                                id="startDate"
-                                type="date"
-                                value={formData.startDate}
-                                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                required
+                            <DatePicker
+                                date={formData.startDate ? new Date(formData.startDate) : undefined}
+                                setDate={(date) => setFormData({
+                                    ...formData,
+                                    startDate: date ? date.toISOString().split('T')[0] : ""
+                                })}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="endDate">End Date</Label>
-                            <Input
-                                id="endDate"
-                                type="date"
-                                value={formData.endDate}
-                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                required
+                            <DatePicker
+                                date={formData.endDate ? new Date(formData.endDate) : undefined}
+                                setDate={(date) => setFormData({
+                                    ...formData,
+                                    endDate: date ? date.toISOString().split('T')[0] : ""
+                                })}
                             />
                         </div>
                     </div>

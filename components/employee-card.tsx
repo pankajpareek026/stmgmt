@@ -9,6 +9,7 @@ import type { Employee } from "@/lib/mock-data"
 
 interface EmployeeCardProps {
   employee: Employee
+  stats?: any // { projectId: { totalEarned, totalPaid, netDue, projectName } }
 }
 
 const statusColors = {
@@ -17,7 +18,7 @@ const statusColors = {
   "on-leave": "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
 }
 
-export function EmployeeCard({ employee }: EmployeeCardProps) {
+export function EmployeeCard({ employee, stats }: EmployeeCardProps) {
   return (
     <Card className="hover:border-primary/50 transition-colors">
       <CardContent className="p-6">
@@ -56,6 +57,29 @@ export function EmployeeCard({ employee }: EmployeeCardProps) {
                 <span className="font-semibold">${employee.dailyRate}/day</span>
               </div>
             </div>
+
+            {/* Project breakdown summary */}
+            {stats && Object.keys(stats).length > 0 && (
+              <div className="mt-4 space-y-2 pt-4 border-t border-dashed border-border/50">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Project Balance Breakdown</p>
+                <div className="space-y-1.5 min-h-[40px]">
+                  {Object.entries(stats).map(([projId, s]: [string, any]) => (
+                    <div key={projId} className="flex flex-col gap-1 p-2 rounded bg-muted/30 border border-border/5 text-[11px]">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold truncate max-w-[150px]">{s.projectName}</span>
+                        <span className={cn("font-bold px-1.5 py-0.5 rounded text-[10px]", s.netDue > 0 ? "bg-red-500/10 text-red-600" : "bg-green-500/10 text-green-600")}>
+                          {s.netDue > 0 ? `Due: ₹${s.netDue.toLocaleString()}` : "Paid"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground opacity-80">
+                        <span>Earned: ₹{s.totalEarned.toLocaleString()}</span>
+                        <span>Paid: ₹{s.totalPaid.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-1.5 mt-4">
               {employee.skills.slice(0, 2).map((skill) => (

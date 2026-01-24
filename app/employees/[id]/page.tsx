@@ -47,6 +47,9 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const { data: projects } = useApi<Project[]>("/projects")
   const { data: attendanceData, refresh: refreshAttendance } = useApi<Attendance[]>("/attendance")
   const { data: payrollData, refresh: refreshPayroll } = useApi<Payroll[]>("/payroll")
+  const { data: projectStats, refresh: refreshStats } = useApi<any[]>(`/employees/${id}/stats`)
+
+  const [selectedProcessProjectId, setSelectedProcessProjectId] = useState<string | undefined>(undefined)
 
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this employee?")) {
@@ -61,7 +64,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  if (loading) {
+  if (loading && !employee) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -97,10 +100,20 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     const empId = typeof a.employeeId === 'string' ? a.employeeId : (a.employeeId?._id || a.employeeId?.id);
     return empId === id;
   });
-  const employeePayroll = (payrollData || []).filter((p: any) => {
+
+  const employeePayrollDocs = (payrollData || []).filter((p: any) => {
     const empId = typeof p.employeeId === 'string' ? p.employeeId : (p.employeeId?._id || p.employeeId?.id);
     return empId === id;
   });
+
+  const employeeTransactions = employeePayrollDocs.flatMap((doc: any) =>
+    (doc.payments || []).map((p: any) => ({
+      ...p,
+      id: p._id || p.id,
+      status: doc.status,
+      period: doc.period
+    }))
+  ).sort((a: any, b: any) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
 
   return (
     <div className="space-y-6">
@@ -141,7 +154,10 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           <Button
             variant="secondary"
             className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20"
-            onClick={() => setShowPayrollDialog(true)}
+            onClick={() => {
+              setSelectedProcessProjectId(employeeProjectId || undefined)
+              setShowPayrollDialog(true)
+            }}
           >
             <DollarSign className="h-4 w-4 mr-2" />
             Process Payroll
@@ -190,7 +206,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground">Paid Amount</p>
                 <p className="text-xl font-bold">
-                  ₹{employeePayroll.reduce((sum: number, p: Payroll) => sum + p.netPay, 0).toLocaleString()}
+                  ₹{employeePayrollDocs.reduce((sum: number, p: any) => sum + (p.totalPaid || 0), 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -206,7 +222,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
               if (a.status === 'half-day') return sum + (dailyRate / 2);
               return sum;
             }, 0);
-            const totalPaid = employeePayroll.reduce((sum: number, p: Payroll) => sum + p.netPay, 0);
+            const totalPaid = employeePayrollDocs.reduce((sum: number, p: any) => sum + (p.totalPaid || 0), 0);
             const remaining = totalEarned - totalPaid;
 
             return (
@@ -244,18 +260,75 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          {/* Skills & Information */}
+
+
+          {/* Project-wise Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle>Skills & Expertise</CardTitle>
+              <CardTitle className="text-lg">Project Balance Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {employee.skills.map((skill: string) => (
-                  <Badge key={skill} variant="secondary" className="px-3 py-1">
-                    {skill}
-                  </Badge>
-                ))}
+              <div className="space-y-4">
+                {projectStats && projectStats.length > 0 ? (
+                  projectStats.map((stat: any) => (
+                    <div key={stat.projectId} className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <div>
+                          <h4 className="font-bold text-base">{stat.projectName}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {stat.attendanceCount} days worked • {stat.totalHours}h total
+                          </p>
+                        </div>
+                        <Badge variant="outline" className={cn(
+                          "w-fit",
+                          stat.netDue > 0 ? "bg-red-500/10 text-red-600 border-red-200" : "bg-green-500/10 text-green-600 border-green-200"
+                        )}>
+                          {stat.netDue > 0 ? `Net Due: ₹${stat.netDue.toLocaleString()}` : "Fully Paid"}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dashed border-border/50">
+                        <div>
+                          <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mb-1">Total Earned</p>
+                          <p className="text-lg font-bold text-blue-600">₹{stat.totalEarned.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mb-1">Paid So Far</p>
+                          <p className="text-lg font-bold text-green-600">₹{stat.totalPaid.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 mt-4 pt-4 border-t border-border/10">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 text-[11px] hover:text-primary transition-colors"
+                          onClick={() => {
+                            setSelectedProcessProjectId(stat.projectId === 'general' ? undefined : stat.projectId)
+                            setShowPayrollDialog(true)
+                          }}
+                        >
+                          <DollarSign className="h-3 w-3 mr-1" /> Pay Due
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 text-[11px] hover:text-primary transition-colors"
+                          onClick={() => {
+                            setSelectedProcessProjectId(stat.projectId === 'general' ? undefined : stat.projectId)
+                            setShowAttendanceDialog(true)
+                          }}
+                        >
+                          <Clock className="h-3 w-3 mr-1" /> Mark
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6 italic">
+                    No project-specific data available yet.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -323,42 +396,43 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {employeePayroll.length > 0 ? (
-                  employeePayroll.map((payroll: any) => (
+                {employeeTransactions.length > 0 ? (
+                  employeeTransactions.map((tx: any) => (
                     <div
-                      key={payroll.id || payroll._id}
+                      key={tx.id}
                       className="flex items-center justify-between py-2 border-b border-border last:border-0"
                     >
                       <div>
                         {/* Display Payment Date or Period */}
                         <p className="text-sm font-medium">
-                          {payroll.paymentDate
-                            ? new Date(payroll.paymentDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-                            : (payroll.period || "Unknown Date")}
+                          {new Date(tx.paymentDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </p>
-                        {/* Display Payment Type and Optional Description */}
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {payroll.paymentType || "Salary"} {payroll.description ? `- ${payroll.description}` : ""}
-                        </p>
+                        {/* Display Project Name and Optional Description */}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-muted/50 font-normal">
+                            {tx.projectId?.name || tx.projectName || "General"}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {tx.period} {tx.description ? `- ${tx.description}` : ""}
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold">₹{payroll.netPay.toLocaleString()}</p>
+                        <p className="text-sm font-bold">₹{tx.amount.toLocaleString()}</p>
                         <Badge
                           variant="outline"
                           className={cn(
                             "text-xs",
-                            payroll.status === "paid" && "bg-green-500/10 text-green-500",
-                            payroll.status === "pending" && "bg-yellow-500/10 text-yellow-500",
-                            payroll.status === "processing" && "bg-blue-500/10 text-blue-500",
+                            tx.status === "paid" && "bg-green-500/10 text-green-500",
                           )}
                         >
-                          {payroll.status}
+                          {tx.status}
                         </Badge>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No payroll records</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No payroll recordsfound</p>
                 )}
               </div>
             </CardContent>
@@ -437,7 +511,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Paid So Far</span>
                   <span className="font-bold text-green-600">
-                    ₹{employeePayroll.reduce((sum: number, p: Payroll) => sum + p.netPay, 0).toLocaleString()}
+                    ₹{employeePayrollDocs.reduce((sum: number, p: any) => sum + (p.totalPaid || 0), 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -456,18 +530,23 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             <CardContent className="space-y-2">
               <Button
                 variant="outline"
-                className="w-full justify-start bg-transparent"
+                className="w-full justify-start bg-transparent hover:text-primary border-border/50 hover:border-primary/50 transition-colors"
                 size="sm"
                 onClick={() => setShowAttendanceDialog(true)}
               >
                 <Clock className="h-4 w-4 mr-2" />
                 Mark Attendance
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-transparent hover:text-primary border-border/50 hover:border-primary/50 transition-colors"
+                size="sm"
+                onClick={() => setShowPayrollDialog(true)}
+              >
                 <DollarSign className="h-4 w-4 mr-2" />
                 Process Payroll
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
+              <Button variant="outline" className="w-full justify-start bg-transparent hover:text-primary border-border/50 hover:border-primary/50 transition-colors" size="sm">
                 <Briefcase className="h-4 w-4 mr-2" />
                 Assign to Project
               </Button>
@@ -490,10 +569,11 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           open={showAttendanceDialog}
           onOpenChange={setShowAttendanceDialog}
           employee={employee}
-          currentProjectId={typeof employee.projectId === 'string' ? employee.projectId : (employee.projectId as any)?.id}
+          currentProjectId={selectedProcessProjectId || employeeProjectId}
           onSaveSuccess={() => {
             refreshAttendance()
             refreshEmployee()
+            refreshStats()
           }}
         />
       )}
@@ -502,9 +582,11 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           open={showPayrollDialog}
           onOpenChange={setShowPayrollDialog}
           initialEmployeeId={employee.id || (employee as any)._id}
+          initialProjectId={selectedProcessProjectId}
           onSaveSuccess={() => {
             refreshPayroll()
             refreshEmployee()
+            refreshStats()
           }}
         />
       )}
