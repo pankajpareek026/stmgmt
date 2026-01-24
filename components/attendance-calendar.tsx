@@ -20,6 +20,10 @@ interface AttendanceRecord {
     checkIn?: string
     checkOut?: string
     projectName?: string
+    projectId?: string
+    paymentAmount?: number
+    projectInitials?: string
+    projectColor?: string
 }
 
 interface AttendanceCalendarProps {
@@ -106,6 +110,19 @@ export function AttendanceCalendar({ records, className }: AttendanceCalendarPro
                                 )}>
                                     {format(day, "d")}
                                 </span>
+                                {/* Project Initials Badge */}
+                                {dayRecords.length > 0 && dayRecords[0].projectInitials && (
+                                    <span
+                                        className="text-[8px] font-bold px-1 py-0.5 rounded-sm border"
+                                        style={{
+                                            backgroundColor: `${dayRecords[0].projectColor}15`,
+                                            borderColor: `${dayRecords[0].projectColor}40`,
+                                            color: dayRecords[0].projectColor || '#666'
+                                        }}
+                                    >
+                                        {dayRecords[0].projectInitials}
+                                    </span>
+                                )}
                             </div>
 
                             <div className="mt-1.5 space-y-1">
@@ -113,17 +130,26 @@ export function AttendanceCalendar({ records, className }: AttendanceCalendarPro
                                     <TooltipProvider key={i}>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <div className={cn(
-                                                    "w-full px-1.5 py-1 rounded-[4px] text-[9px] font-bold truncate transition-transform hover:scale-105 cursor-default flex items-center gap-1 border-l-2",
-                                                    (rec.status === "present" || rec.status === "overtime") && "bg-green-500/10 text-green-600 border-green-500",
-                                                    rec.status === "half-day" && "bg-yellow-500/10 text-yellow-600 border-yellow-500",
-                                                    rec.status === "absent" && "bg-red-500/10 text-red-600 border-red-500"
-                                                )}>
-                                                    <div className={cn("w-1 h-1 rounded-full",
-                                                        (rec.status === "present" || rec.status === "overtime") ? "bg-green-500" :
-                                                            rec.status === "half-day" ? "bg-yellow-500" : "bg-red-500"
-                                                    )} />
-                                                    <span className="truncate">{rec.projectName || rec.status}</span>
+                                                <div className="space-y-0.5">
+                                                    <div className={cn(
+                                                        "w-full px-1.5 py-1 rounded-[4px] text-[9px] font-bold truncate transition-transform hover:scale-105 cursor-default flex items-center gap-1 border-l-2",
+                                                        (rec.status === "present" || rec.status === "overtime") && "bg-green-500/10 text-green-600 border-green-500",
+                                                        rec.status === "half-day" && "bg-yellow-500/10 text-yellow-600 border-yellow-500",
+                                                        rec.status === "absent" && "bg-red-500/10 text-red-600 border-red-500"
+                                                    )}>
+                                                        <div className={cn("w-1 h-1 rounded-full",
+                                                            (rec.status === "present" || rec.status === "overtime") ? "bg-green-500" :
+                                                                rec.status === "half-day" ? "bg-yellow-500" : "bg-red-500"
+                                                        )} />
+                                                        <span className="truncate">{rec.projectName || rec.status}</span>
+                                                    </div>
+                                                    {/* Payment Amount Display */}
+                                                    {rec.paymentAmount && rec.paymentAmount > 0 && (
+                                                        <div className="w-full px-1.5 py-0.5 rounded-[3px] text-[8px] font-bold bg-green-500/5 text-green-700 border border-green-500/20 flex items-center justify-center gap-0.5">
+                                                            <span className="text-[7px]">₹</span>
+                                                            <span>{rec.paymentAmount.toLocaleString()}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="p-3 max-w-[200px] bg-popover border border-border shadow-xl">
@@ -147,6 +173,15 @@ export function AttendanceCalendar({ records, className }: AttendanceCalendarPro
                                                             </div>
                                                         )}
                                                         <p className="text-muted-foreground">{rec.hours || (rec.status === 'half-day' ? 4 : 8)}h reported</p>
+                                                        {/* Payment Info in Tooltip */}
+                                                        {rec.paymentAmount && rec.paymentAmount > 0 && (
+                                                            <div className="pt-2 mt-2 border-t border-border/50">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-muted-foreground">Payment:</span>
+                                                                    <span className="font-bold text-green-600">₹{rec.paymentAmount.toLocaleString()}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </TooltipContent>

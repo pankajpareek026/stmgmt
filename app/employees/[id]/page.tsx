@@ -118,6 +118,64 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     }))
   ).sort((a: any, b: any) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
 
+  // Helper function to get project initials
+  const getProjectInitials = (projectName: string): string => {
+    if (!projectName) return 'GEN'
+    return projectName
+      .split(' ')
+      .filter(word => word.length > 0)
+      .map(word => word[0].toUpperCase())
+      .slice(0, 3)
+      .join('')
+  }
+
+  // Helper function to assign consistent colors to projects
+  const projectColorMap = new Map<string, string>()
+  const projectColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1']
+  const getProjectColor = (projectId: string): string => {
+    if (!projectId) return '#6b7280'
+    if (!projectColorMap.has(projectId)) {
+      const colorIndex = projectColorMap.size % projectColors.length
+      projectColorMap.set(projectId, projectColors[colorIndex])
+    }
+    return projectColorMap.get(projectId) || '#6b7280'
+  }
+
+  // Helper function to find payment for a specific date and project
+  const findPaymentForDate = (date: string, projectId: string): number | undefined => {
+    const dateStr = new Date(date).toISOString().split('T')[0]
+    for (const transaction of employeeTransactions) {
+      const paymentDateStr = new Date(transaction.paymentDate).toISOString().split('T')[0]
+      const txProjectId = typeof transaction.projectId === 'string'
+        ? transaction.projectId
+        : (transaction.projectId?._id || transaction.projectId?.id)
+
+      if (paymentDateStr === dateStr && txProjectId === projectId) {
+        return transaction.amount
+      }
+    }
+    return undefined
+  }
+
+  // Enrich attendance data with payment information
+  const enrichedAttendance = employeeAttendance.map((attendance: any) => {
+    const attProjectId = typeof attendance.projectId === 'string'
+      ? attendance.projectId
+      : (attendance.projectId?._id || attendance.projectId?.id)
+
+    const project = (projects || []).find((p: Project) => p.id === attProjectId)
+    const projectName = project?.name || attendance.projectName || 'General'
+
+    return {
+      ...attendance,
+      projectId: attProjectId,
+      projectName,
+      projectInitials: getProjectInitials(projectName),
+      projectColor: getProjectColor(attProjectId || 'general'),
+      paymentAmount: findPaymentForDate(attendance.date, attProjectId)
+    }
+  })
+
   return (
     <div className="space-y-6">
       {/* Back Button */}
@@ -344,7 +402,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                 <Link href="/attendance">View all logs</Link>
               </Button>
             </div>
-            <AttendanceCalendar records={employeeAttendance} />
+            <AttendanceCalendar records={enrichedAttendance} />
           </div>
 
           {/* Payroll History */}
