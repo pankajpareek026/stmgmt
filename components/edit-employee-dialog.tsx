@@ -11,6 +11,7 @@ import { apiService } from "@/lib/api-service"
 import { Project, Employee } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
 import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface EditEmployeeDialogProps {
     open: boolean

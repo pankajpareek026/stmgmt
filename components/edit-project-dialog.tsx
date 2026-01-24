@@ -11,6 +11,7 @@ import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { Project } from "@/lib/mock-data"
 import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface EditProjectDialogProps {
     open: boolean
@@ -143,21 +144,22 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="edit-proj-startDate">Start Date *</Label>
-                            <Input
-                                id="edit-proj-startDate"
-                                type="date"
-                                value={formData.startDate}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, startDate: e.target.value })}
-                                required
+                            <DatePicker
+                                date={formData.startDate ? new Date(formData.startDate) : undefined}
+                                setDate={(date) => setFormData({
+                                    ...formData,
+                                    startDate: date ? date.toISOString().split('T')[0] : ""
+                                })}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-proj-endDate">Expected End Date</Label>
-                            <Input
-                                id="edit-proj-endDate"
-                                type="date"
-                                value={formData.endDate}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, endDate: e.target.value })}
+                            <DatePicker
+                                date={formData.endDate ? new Date(formData.endDate) : undefined}
+                                setDate={(date) => setFormData({
+                                    ...formData,
+                                    endDate: date ? date.toISOString().split('T')[0] : ""
+                                })}
                             />
                         </div>
                     </div>

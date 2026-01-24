@@ -11,6 +11,7 @@ import { apiService } from "@/lib/api-service"
 import { Project } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
 import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface AddEmployeeDialogProps {
     open: boolean
@@ -166,13 +167,13 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="john@example.com"
-                            value={formData.email}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+                        <Label htmlFor="joinDate">Join Date *</Label>
+                        <DatePicker
+                            date={formData.joinDate ? new Date(formData.joinDate) : undefined}
+                            setDate={(date) => setFormData({
+                                ...formData,
+                                joinDate: date ? date.toISOString().split('T')[0] : ""
+                            })}
                         />
                     </div>
                     <div className="flex justify-end gap-2 pt-4">

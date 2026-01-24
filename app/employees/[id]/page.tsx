@@ -29,6 +29,8 @@ import { Loader2, AlertCircle } from "lucide-react"
 import { EditEmployeeDialog } from "@/components/edit-employee-dialog"
 import { MarkEmployeeAttendanceDialog } from "@/components/mark-employee-attendance-dialog"
 import { ProcessPayrollDialog } from "@/components/process-payroll-dialog"
+import { AttendanceCalendar } from "@/components/attendance-calendar"
+import { AssignProjectDialog } from "@/components/assign-project-dialog"
 
 const statusColors = {
   active: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -42,6 +44,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false)
   const [showPayrollDialog, setShowPayrollDialog] = useState(false)
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
 
   const { data: employee, loading, error, refresh: refreshEmployee } = useApi<Employee>(`/employees/${id}`)
   const { data: projects } = useApi<Project[]>("/projects")
@@ -334,55 +337,15 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           </Card>
 
           {/* Attendance History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Recent Attendance</CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/attendance">View all</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {employeeAttendance.length > 0 ? (
-                  employeeAttendance.map((attendance: any) => (
-                    <div
-                      key={attendance.id || attendance._id}
-                      className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{new Date(attendance.date).toLocaleDateString()}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {attendance.projectId?.name || attendance.projectName || "Unknown Project"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {attendance.status === 'present' ? (
-                          <>
-                            <p className="text-sm font-semibold">
-                              {attendance.checkIn} - {attendance.checkOut || "?"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{attendance.hours}h worked</p>
-                          </>
-                        ) : (
-                          <Badge variant="outline" className={cn(
-                            "text-xs",
-                            attendance.status === 'absent' && "text-red-500 border-red-200 bg-red-50",
-                            attendance.status === 'half-day' && "text-yellow-500 border-yellow-200 bg-yellow-50"
-                          )}>
-                            {attendance.status}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No attendance records</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">Attendance Calendar</h3>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/attendance">View all logs</Link>
+              </Button>
+            </div>
+            <AttendanceCalendar records={employeeAttendance} />
+          </div>
 
           {/* Payroll History */}
           <Card>
@@ -546,7 +509,12 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                 <DollarSign className="h-4 w-4 mr-2" />
                 Process Payroll
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent hover:text-primary border-border/50 hover:border-primary/50 transition-colors" size="sm">
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-transparent hover:text-primary border-border/50 hover:border-primary/50 transition-colors"
+                size="sm"
+                onClick={() => setShowAssignDialog(true)}
+              >
                 <Briefcase className="h-4 w-4 mr-2" />
                 Assign to Project
               </Button>
@@ -585,6 +553,17 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           initialProjectId={selectedProcessProjectId}
           onSaveSuccess={() => {
             refreshPayroll()
+            refreshEmployee()
+            refreshStats()
+          }}
+        />
+      )}
+      {employee && (
+        <AssignProjectDialog
+          open={showAssignDialog}
+          onOpenChange={setShowAssignDialog}
+          employee={employee}
+          onSaveSuccess={() => {
             refreshEmployee()
             refreshStats()
           }}

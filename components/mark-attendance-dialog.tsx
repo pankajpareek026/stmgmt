@@ -16,6 +16,7 @@ import { apiService } from "@/lib/api-service"
 import { Project, Employee } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface MarkAttendanceDialogProps {
   open: boolean
@@ -394,7 +395,10 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
 
             <div className="space-y-2">
               <Label>Date</Label>
-              <Input type="date" value={selectedDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDate(e.target.value)} />
+              <DatePicker
+                date={selectedDate ? new Date(selectedDate) : undefined}
+                setDate={(date) => setSelectedDate(date ? date.toISOString().split("T")[0] : "")}
+              />
             </div>
           </div>
 

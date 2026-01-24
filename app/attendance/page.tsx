@@ -1,7 +1,8 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { Plus, Search, CalendarIcon, Download, Loader2 } from "lucide-react"
+import { Plus, Search, CalendarIcon, Download, Loader2, LayoutDashboard, List } from "lucide-react"
+import { AttendanceCalendar } from "@/components/attendance-calendar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +20,7 @@ function AttendanceContent() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [projectFilter, setProjectFilter] = useState<string>("all")
   const [showMarkAttendance, setShowMarkAttendance] = useState(false)
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
 
   const { data: attendanceData, loading: attendanceLoading, error: attendanceError, refresh: refreshAttendance } = useApi<Attendance[]>("/attendance")
   const { data: projectsData, loading: projectsLoading } = useApi<Project[]>("/projects")
@@ -157,8 +159,28 @@ function AttendanceContent() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row">
+      {/* Filters & View Toggle */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex bg-muted p-1 rounded-lg w-fit">
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 px-3 text-xs"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-3.5 w-3.5 mr-1.5" /> List
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 px-3 text-xs"
+            onClick={() => setViewMode('calendar')}
+          >
+            <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" /> Calendar
+          </Button>
+        </div>
+        <div className="h-4 w-px bg-border hidden sm:block mx-1" />
+
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -198,134 +220,140 @@ function AttendanceContent() {
         </div>
       </div>
 
-      {/* Attendance Table - Desktop */}
-      <Card className="hidden md:block">
-        <CardHeader>
-          <CardTitle>Attendance Records</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Check In</TableHead>
-                <TableHead>Check Out</TableHead>
-                <TableHead>Hours</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAttendance.length > 0 ? (
-                filteredAttendance.map((attendance: Attendance) => {
-                  const empName = getEmployeeName(attendance)
-                  return (
-                    <TableRow key={attendance.id}>
-                      <TableCell>
+      {viewMode === 'calendar' ? (
+        <AttendanceCalendar records={filteredAttendance} className="animate-in fade-in duration-500" />
+      ) : (
+        <>
+          {/* Attendance Table - Desktop */}
+          <Card className="hidden md:block">
+            <CardHeader>
+              <CardTitle>Attendance Records</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Check In</TableHead>
+                    <TableHead>Check Out</TableHead>
+                    <TableHead>Hours</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAttendance.length > 0 ? (
+                    filteredAttendance.map((attendance: Attendance) => {
+                      const empName = getEmployeeName(attendance)
+                      return (
+                        <TableRow key={attendance.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                  {empName
+                                    .split(" ")
+                                    .map((n: string) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{empName}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{getProjectName(attendance)}</TableCell>
+                          <TableCell>{new Date(attendance.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{attendance.checkIn}</TableCell>
+                          <TableCell>{attendance.checkOut}</TableCell>
+                          <TableCell>
+                            <span className="font-semibold">{attendance.hours}h</span>
+                            {attendance.overtime > 0 && (
+                              <span className="text-xs text-primary ml-1">(+{attendance.overtime}h OT)</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
+                              {attendance.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No attendance records found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Attendance Cards - Mobile */}
+          <div className="md:hidden space-y-4">
+            {filteredAttendance.length > 0 ? (
+              filteredAttendance.map((attendance: Attendance) => {
+                const empName = getEmployeeName(attendance)
+                return (
+                  <Card key={attendance.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
                               {empName
                                 .split(" ")
                                 .map((n: string) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{empName}</span>
+                          <div>
+                            <p className="font-semibold">{empName}</p>
+                            <p className="text-xs text-muted-foreground">{getProjectName(attendance)}</p>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{getProjectName(attendance)}</TableCell>
-                      <TableCell>{new Date(attendance.date).toLocaleDateString()}</TableCell>
-                      <TableCell>{attendance.checkIn}</TableCell>
-                      <TableCell>{attendance.checkOut}</TableCell>
-                      <TableCell>
-                        <span className="font-semibold">{attendance.hours}h</span>
-                        {attendance.overtime > 0 && (
-                          <span className="text-xs text-primary ml-1">(+{attendance.overtime}h OT)</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
                         <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
                           {attendance.status}
                         </Badge>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    No attendance records found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Attendance Cards - Mobile */}
-      <div className="md:hidden space-y-4">
-        {filteredAttendance.length > 0 ? (
-          filteredAttendance.map((attendance: Attendance) => {
-            const empName = getEmployeeName(attendance)
-            return (
-              <Card key={attendance.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                          {empName
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{empName}</p>
-                        <p className="text-xs text-muted-foreground">{getProjectName(attendance)}</p>
                       </div>
-                    </div>
-                    <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
-                      {attendance.status}
-                    </Badge>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground text-xs">Date</p>
-                      <p className="font-medium">{new Date(attendance.date).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Hours</p>
-                      <p className="font-semibold">
-                        {attendance.hours}h
-                        {attendance.overtime > 0 && <span className="text-primary ml-1">(+{attendance.overtime}h)</span>}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Check In</p>
-                      <p className="font-medium">{attendance.checkIn}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Check Out</p>
-                      <p className="font-medium">{attendance.checkOut}</p>
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground text-xs">Date</p>
+                          <p className="font-medium">{new Date(attendance.date).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Hours</p>
+                          <p className="font-semibold">
+                            {attendance.hours}h
+                            {attendance.overtime > 0 && <span className="text-primary ml-1">(+{attendance.overtime}h)</span>}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Check In</p>
+                          <p className="font-medium">{attendance.checkIn}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Check Out</p>
+                          <p className="font-medium">{attendance.checkOut}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No attendance records found</p>
                 </CardContent>
               </Card>
-            )
-          })
-        ) : (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">No attendance records found</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            )}
+          </div>
+        </>
+      )}
 
       <MarkAttendanceDialog
         open={showMarkAttendance}

@@ -32,9 +32,8 @@ export function MarkEmployeeAttendanceDialog({
     const [error, setError] = useState<string | null>(null)
     const { data: projects } = useApi<Project[]>("/projects")
 
+    const [selectedDates, setSelectedDates] = useState<Date[]>([new Date()])
     const [formData, setFormData] = useState({
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0],
         projectId: currentProjectId || "",
         status: "present",
         checkIn: "08:00",
@@ -63,20 +62,13 @@ export function MarkEmployeeAttendanceDialog({
             return
         }
 
-        const start = new Date(formData.startDate)
-        const end = new Date(formData.endDate)
-
-        if (end < start) {
-            setError("End date cannot be before start date")
+        if (selectedDates.length === 0) {
+            setError("Please select at least one date")
             return
         }
 
-        // Calculate days
-        const diffTime = Math.abs(end.getTime() - start.getTime())
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // Inclusive
-
-        if (diffDays > 31) {
-            if (!confirm(`You are about to mark attendance for ${diffDays} days. Continue?`)) {
+        if (selectedDates.length > 31) {
+            if (!confirm(`You are about to mark attendance for ${selectedDates.length} days. Continue?`)) {
                 return
             }
         }
@@ -85,14 +77,9 @@ export function MarkEmployeeAttendanceDialog({
         try {
             const promises = []
 
-            // Loop through each day
-            for (let i = 0; i < diffDays; i++) {
-                const currentDate = new Date(start)
-                currentDate.setDate(start.getDate() + i)
-                const dateStr = currentDate.toISOString().split('T')[0]
-
-                // Skip default weekends if desired? No, construction usually demands explicit marking.
-                // Or we could ask user? For now, we assume user selects exact range.
+            // Loop through each selected date
+            for (const date of selectedDates) {
+                const dateStr = date.toISOString().split('T')[0]
 
                 const record = {
                     employeeId: employee.id,
@@ -105,13 +92,12 @@ export function MarkEmployeeAttendanceDialog({
                     overtime: Number(formData.overtime)
                 }
 
-                // Push single request (or we could batch if backend supported it)
-                promises.push(apiService.post("/attendance", { records: [record] })) // The endpoint expects { records: [...] }
+                promises.push(apiService.post("/attendance", { records: [record] }))
             }
 
             await Promise.all(promises)
 
-            toast.success(`Attendance marked for ${diffDays} days`)
+            toast.success(`Attendance marked for ${selectedDates.length} days`)
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
@@ -143,27 +129,19 @@ export function MarkEmployeeAttendanceDialog({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="startDate">Start Date</Label>
-                            <DatePicker
-                                date={formData.startDate ? new Date(formData.startDate) : undefined}
-                                setDate={(date) => setFormData({
-                                    ...formData,
-                                    startDate: date ? date.toISOString().split('T')[0] : ""
-                                })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="endDate">End Date</Label>
-                            <DatePicker
-                                date={formData.endDate ? new Date(formData.endDate) : undefined}
-                                setDate={(date) => setFormData({
-                                    ...formData,
-                                    endDate: date ? date.toISOString().split('T')[0] : ""
-                                })}
-                            />
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Select Dates</Label>
+                        <DatePicker
+                            mode="multiple"
+                            dates={selectedDates}
+                            setDates={setSelectedDates as any}
+                            placeholder="Click to select dates"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                            {selectedDates.length > 0
+                                ? `Selected: ${selectedDates.map(d => d.getDate()).join(', ')}`
+                                : 'No dates selected'}
+                        </p>
                     </div>
 
                     <div className="space-y-2">
