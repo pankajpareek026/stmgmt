@@ -22,11 +22,11 @@ export function DesktopSidebar() {
     <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 h-16 border-b border-border">
-        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-lg">CW</span>
+        <div className="w-10 h-10 relative overflow-hidden rounded-lg">
+          <img src="/logo.png" alt="ConstPro Logo" className="object-cover w-full h-full" />
         </div>
         <div>
-          <h1 className="font-bold text-lg leading-none">ConstructWork</h1>
+          <h1 className="font-bold text-lg leading-none">ConstPro</h1>
           <p className="text-xs text-muted-foreground">Workforce Manager</p>
         </div>
       </div>

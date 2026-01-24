@@ -27,10 +27,10 @@ export function MobileNav() {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
         <div className="flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">CW</span>
+            <div className="w-8 h-8 relative overflow-hidden rounded-lg">
+              <img src="/logo.png" alt="ConstPro Logo" className="object-cover w-full h-full" />
             </div>
-            <span className="font-semibold text-lg">ConstructWork</span>
+            <span className="font-semibold text-lg">ConstPro</span>
           </div>
 
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="text-foreground">

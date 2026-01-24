@@ -85,12 +85,12 @@ export default function SignupPage() {
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <div className="mb-4">
-                        <div className="inline-block bg-primary text-primary-foreground rounded-lg p-3 font-bold text-xl">
-                            CW
+                        <div className="inline-block w-16 h-16 relative overflow-hidden rounded-lg mx-auto">
+                            <img src="/logo.png" alt="ConstPro Logo" className="object-cover w-full h-full" />
                         </div>
                     </div>
                     <CardTitle className="text-2xl">Create Account</CardTitle>
-                    <CardDescription>Join ConstructWork today</CardDescription>
+                    <CardDescription>Join ConstPro today</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSignup} className="space-y-4">
