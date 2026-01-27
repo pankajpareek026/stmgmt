@@ -81,9 +81,12 @@ export function MarkEmployeeAttendanceDialog({
             for (const date of selectedDates) {
                 const dateStr = date.toISOString().split('T')[0]
 
+                const project = (projects || []).find(p => p.id === formData.projectId)
                 const record = {
                     employeeId: employee.id,
+                    employeeName: employee.name,
                     projectId: formData.projectId,
+                    projectName: project?.name || "Unknown Project",
                     date: dateStr,
                     status: formData.status,
                     checkIn: formData.status === 'absent' ? '' : formData.checkIn,
@@ -154,9 +157,20 @@ export function MarkEmployeeAttendanceDialog({
                                 <SelectValue placeholder="Select project" />
                             </SelectTrigger>
                             <SelectContent>
-                                {(projects || []).map((p: Project) => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                ))}
+                                {(() => {
+                                    const assignedProjectIds = employee.projectIds || []
+                                    const availableProjects = (projects || []).filter(p =>
+                                        assignedProjectIds.includes(p.id) || p.id === currentProjectId
+                                    )
+
+                                    if (availableProjects.length === 0) {
+                                        return <SelectItem value="none" disabled>No projects assigned</SelectItem>
+                                    }
+
+                                    return availableProjects.map((p: Project) => (
+                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                    ))
+                                })()}
                             </SelectContent>
                         </Select>
                     </div>

@@ -81,7 +81,7 @@ export default function DashboardPage() {
       type: "employee",
       message: `New employee ${e.name} joined as ${e.role}`,
       time: "Recent",
-      user: e.name.split(" ").map(n => n[0]).join(""),
+      user: (e.name || "Unknown").split(" ").map(n => n[0]).join(""),
     })
   })
 
@@ -90,9 +90,9 @@ export default function DashboardPage() {
     generatedActivities.push({
       id: `a-${a.id}`,
       type: "attendance",
-      message: `${a.employeeName} checked in - ${a.status}`,
+      message: `${a.employeeName || "Worker"} checked in - ${a.status}`,
       time: "Today",
-      user: a.employeeName.split(" ").map(n => n[0]).join(""),
+      user: (a.employeeName || "Unknown").split(" ").map(n => n[0]).join(""),
     })
   })
 

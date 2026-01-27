@@ -11,7 +11,7 @@ import { apiService } from "@/lib/api-service"
 import { Project, Employee } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
 import { toast } from "sonner"
-import { DatePicker } from "@/components/ui/date-picker"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface EditEmployeeDialogProps {
     open: boolean
@@ -32,7 +32,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
         email: employee.email,
         dailyRate: employee.dailyRate.toString(),
         status: employee.status,
-        projectId: employee.projectId,
+        projectIds: employee.projectIds || [],
     })
 
     useEffect(() => {
@@ -46,7 +46,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
                     email: employee.email,
                     dailyRate: employee.dailyRate.toString(),
                     status: employee.status,
-                    projectId: employee.projectId,
+                    projectIds: employee.projectIds || [],
                 })
             }
         }
@@ -55,7 +55,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
-        if (!formData.name || !formData.dailyRate || !formData.projectId) {
+        if (!formData.name || !formData.dailyRate) {
             setError("Please fill in all required fields")
             return
         }
@@ -151,22 +151,31 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="edit-projectId">Assign Project *</Label>
-                            <Select
-                                value={formData.projectId}
-                                onValueChange={(value: string) => setFormData({ ...formData, projectId: value })}
-                            >
-                                <SelectTrigger id="edit-projectId">
-                                    <SelectValue placeholder={projectsLoading ? "Loading..." : "Select project"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {(projects || []).map((project: Project) => (
-                                        <SelectItem key={project.id} value={project.id}>
+                            <Label>Project Assignments</Label>
+                            <div className="border rounded-md p-3 space-y-2 max-h-[150px] overflow-y-auto bg-background">
+                                {projectsLoading ? (
+                                    <div className="flex items-center justify-center p-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                    </div>
+                                ) : (projects || []).map((project: Project) => (
+                                    <div key={project.id} className="flex items-center gap-2">
+                                        <Checkbox
+                                            id={`edit-proj-${project.id}`}
+                                            checked={formData.projectIds.includes(project.id)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setFormData({ ...formData, projectIds: [...formData.projectIds, project.id] })
+                                                } else {
+                                                    setFormData({ ...formData, projectIds: formData.projectIds.filter(id => id !== project.id) })
+                                                }
+                                            }}
+                                        />
+                                        <Label htmlFor={`edit-proj-${project.id}`} className="text-sm cursor-pointer truncate">
                                             {project.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <div className="space-y-2">

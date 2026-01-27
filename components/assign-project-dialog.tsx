@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, AlertCircle } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { apiService } from "@/lib/api-service"
 import { Project, Employee } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
@@ -23,18 +24,14 @@ export function AssignProjectDialog({ open, onOpenChange, employee, onSaveSucces
     const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
 
-    const employeeProjectId = typeof employee.projectId === 'object' && employee.projectId !== null
-        ? (employee.projectId as any).id
-        : employee.projectId
-
-    const [selectedProjectId, setSelectedProjectId] = useState(employeeProjectId || "")
+    const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(employee.projectIds || [])
 
     useEffect(() => {
         if (open) {
             setError(null)
-            setSelectedProjectId(employeeProjectId || "")
+            setSelectedProjectIds(employee.projectIds || [])
         }
-    }, [open, employeeProjectId])
+    }, [open, employee.projectIds])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -43,9 +40,9 @@ export function AssignProjectDialog({ open, onOpenChange, employee, onSaveSucces
         setIsSaving(true)
         try {
             await apiService.put(`/employees/${employee.id}`, {
-                projectId: selectedProjectId || null
+                projectIds: selectedProjectIds
             })
-            toast.success("Project reassigned successfully")
+            toast.success("Assignments updated successfully")
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
@@ -77,29 +74,46 @@ export function AssignProjectDialog({ open, onOpenChange, employee, onSaveSucces
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="assign-project">Select Project</Label>
-                        <Select
-                            value={selectedProjectId}
-                            onValueChange={setSelectedProjectId}
-                        >
-                            <SelectTrigger id="assign-project">
-                                <SelectValue placeholder={projectsLoading ? "Loading..." : "Unassigned / None"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Unassigned / None</SelectItem>
-                                {(projects || []).map((p: Project) => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label>Select Projects</Label>
+                        <div className="border rounded-md p-3 space-y-2 max-h-[250px] overflow-y-auto bg-background">
+                            {projectsLoading ? (
+                                <div className="flex items-center justify-center p-4">
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : (projects || []).length > 0 ? (
+                                (projects || []).map((p: Project) => (
+                                    <div key={p.id} className="flex items-center gap-2">
+                                        <Checkbox
+                                            id={`assign-proj-${p.id}`}
+                                            checked={selectedProjectIds.includes(p.id)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedProjectIds([...selectedProjectIds, p.id])
+                                                } else {
+                                                    setSelectedProjectIds(selectedProjectIds.filter(id => id !== p.id))
+                                                }
+                                            }}
+                                        />
+                                        <Label htmlFor={`assign-proj-${p.id}`} className="text-sm cursor-pointer truncate">
+                                            {p.name}
+                                        </Label>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">No projects found</p>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                            {selectedProjectIds.length} projects selected
+                        </p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t mt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isSaving || selectedProjectId === (employeeProjectId || "none")}>
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Assignment"}
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Assignments"}
                         </Button>
                     </div>
                 </form>

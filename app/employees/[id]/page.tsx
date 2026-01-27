@@ -92,13 +92,15 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     )
   }
 
-  const employeeProjectId = typeof employee.projectId === 'object' && employee.projectId !== null
-    ? (employee.projectId as any).id
-    : employee.projectId
+  const assignedProjects = (projects || []).filter((p: Project) =>
+    employee.projectIds?.includes(p.id)
+  )
 
-  const assignedProject = (projects || []).find((p: Project) => p.id === employeeProjectId)
-  // Fallback: If project not found in list but we have populated data, use that
-  const displayProject = assignedProject || (typeof employee.projectId === 'object' ? employee.projectId : null)
+  const displayProjects = assignedProjects.length > 0 ? assignedProjects : []
+
+  // Use the first project for default actions, or undefined if none
+  const defaultProjectId = employee.projectIds?.[0]
+
   const employeeAttendance = (attendanceData || []).filter((a: any) => {
     const empId = typeof a.employeeId === 'string' ? a.employeeId : (a.employeeId?._id || a.employeeId?.id);
     return empId === id;
@@ -216,7 +218,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             variant="secondary"
             className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20"
             onClick={() => {
-              setSelectedProcessProjectId(employeeProjectId || undefined)
+              setSelectedProcessProjectId(defaultProjectId)
               setShowPayrollDialog(true)
             }}
           >
@@ -462,48 +464,38 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Current Assignment */}
-          {displayProject ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Assignment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-semibold">{displayProject.name}</p>
-                      {/* Only show completion/location if we have the full project object from the list */}
-                      {assignedProject && (
-                        <>
-                          <p className="text-sm text-muted-foreground mt-1">{assignedProject.completion}% complete</p>
-                        </>
-                      )}
+          {/* Current Assignments */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Assignments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {displayProjects.length > 0 ? (
+                <div className="space-y-4">
+                  {displayProjects.map((project: Project) => (
+                    <div key={project.id} className="p-3 rounded-lg border border-border space-y-3">
+                      <div className="flex items-start gap-2">
+                        <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="font-semibold">{project.name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{project.completion}% complete</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <p className="text-sm truncate">{project.location}</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
+                        <Link href={`/projects/${project.id}`}>View Project</Link>
+                      </Button>
                     </div>
-                  </div>
-                  {assignedProject && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <p className="text-sm">{assignedProject.location}</p>
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent" asChild>
-                    <Link href={`/projects/${displayProject.id || (displayProject as any)._id}`}>View Project</Link>
-                  </Button>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Assignment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground text-center py-4">No active assignment</p>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No active assignments</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Work Statistics */}
           <Card>
@@ -595,7 +587,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           open={showAttendanceDialog}
           onOpenChange={setShowAttendanceDialog}
           employee={employee}
-          currentProjectId={selectedProcessProjectId || employeeProjectId}
+          currentProjectId={selectedProcessProjectId || defaultProjectId}
           onSaveSuccess={() => {
             refreshAttendance()
             refreshEmployee()

@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { apiService, setAuthToken } from '@/lib/api-service'
 
 export default function LoginPage() {
     const router = useRouter()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -80,16 +81,41 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                disabled={loading}
-                                required
-                            />
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Password</Label>
+                                <a
+                                    href="/forgot-password"
+                                    className="text-xs text-primary hover:underline font-medium"
+                                >
+                                    Forgot Password?
+                                </a>
+                            </div>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    disabled={loading}
+                                    className="pr-10"
+                                    required
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    disabled={loading}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                </Button>
+                            </div>
                         </div>
 
                         <Button type="submit" className="w-full" disabled={loading}>

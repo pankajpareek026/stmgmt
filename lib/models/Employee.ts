@@ -43,7 +43,11 @@ const employeeSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Project',
         required: false
-    }
+    },
+    projectIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project'
+    }]
 }, {
     timestamps: true,
     toJSON: {
@@ -59,7 +63,8 @@ const employeeSchema = new mongoose.Schema({
             delete ret._id;
             delete ret.__v;
         }
-    }
+    },
+    strictPopulate: false
 });
 
 export default mongoose.models.Employee || mongoose.model('Employee', employeeSchema);

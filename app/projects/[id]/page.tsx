@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useState, use } from "react"
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -35,6 +35,7 @@ import { apiService } from "@/lib/api-service"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { EditProjectDialog } from "@/components/edit-project-dialog"
+import { ManageMembersDialog } from "@/components/manage-members-dialog"
 
 const statusColors = {
   active: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -47,9 +48,10 @@ function ProjectDetailContent({ id }: { id: string }) {
   const router = useRouter()
   const [showMarkAttendance, setShowMarkAttendance] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showManageMembers, setShowManageMembers] = useState(false)
 
   const { data: project, loading, error, refresh: refreshProject } = useApi<Project>(`/projects/${id}`)
-  const { data: employeesData } = useApi<Employee[]>("/employees")
+  const { data: employeesData, refresh: refreshEmployees } = useApi<Employee[]>("/employees")
   const { data: expensesData, refresh: refreshExpenses } = useApi<Expense[]>("/expenses")
   const { data: attendanceData, refresh: refreshAttendance } = useApi<Attendance[]>("/attendance")
 
@@ -91,10 +93,11 @@ function ProjectDetailContent({ id }: { id: string }) {
     )
   }
 
-  const projectEmployees = (employeesData || []).filter((e: Employee) => {
-    const pId = typeof e.projectId === 'object' && e.projectId !== null ? (e.projectId as any).id : e.projectId
-    return pId === id
-  })
+  const projectEmployees = (project.employeeIds || []).map((e: any) => {
+    // If e is an object (populated), return it. If it's a string, find it in employeesData.
+    if (typeof e === 'object' && e !== null) return e as Employee
+    return (employeesData || []).find((emp: Employee) => (emp.id || (emp as any)._id) === e)
+  }).filter(Boolean) as Employee[]
   const projectExpenses = (expensesData || []).filter((e: Expense) => e.projectId === id)
   const projectAttendance = (attendanceData || []).filter((a: Attendance) => a.projectId === id)
   const budgetPercent = project.budget > 0 ? (project.spent / project.budget) * 100 : 0
@@ -138,7 +141,7 @@ function ProjectDetailContent({ id }: { id: string }) {
             </div>
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span>{project.workers} workers</span>
+              <span>{projectEmployees.length} workers</span>
             </div>
           </div>
         </div>
@@ -209,7 +212,7 @@ function ProjectDetailContent({ id }: { id: string }) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Team Size</p>
-                <p className="text-2xl font-bold">{project.workers}</p>
+                <p className="text-2xl font-bold">{projectEmployees.length}</p>
               </div>
             </div>
           </CardContent>
@@ -521,7 +524,12 @@ function ProjectDetailContent({ id }: { id: string }) {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Team Members</CardTitle>
-                <span className="text-sm text-muted-foreground">{projectEmployees.length}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{projectEmployees.length}</span>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => setShowManageMembers(true)}>
+                    Manage Team
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -603,12 +611,23 @@ function ProjectDetailContent({ id }: { id: string }) {
           refreshProject()
         }}
       />
+
+      {/* Manage Members Dialog */}
+      <ManageMembersDialog
+        open={showManageMembers}
+        onOpenChange={setShowManageMembers}
+        projectId={id}
+        onSaveSuccess={() => {
+          refreshProject()
+          refreshEmployees?.()
+        }}
+      />
     </div>
   )
 }
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
 
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]">Loading...</div>}>

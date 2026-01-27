@@ -25,7 +25,7 @@ export interface Employee {
   status: "active" | "inactive" | "on-leave"
   joinDate: string
   skills: string[]
-  projectId?: string | { id: string; name: string } | any
+  projectIds: string[]
 }
 
 export interface Attendance {
@@ -126,7 +126,7 @@ export const mockEmployees: Employee[] = [
     status: "active",
     joinDate: "2023-06-15",
     skills: ["Project Management", "Safety Compliance", "Team Leadership"],
-    projectId: "p1",
+    projectIds: ["p1"],
   },
   {
     id: "e2",
@@ -138,7 +138,7 @@ export const mockEmployees: Employee[] = [
     status: "active",
     joinDate: "2023-08-20",
     skills: ["Electrical Wiring", "Circuit Design", "Safety Standards"],
-    projectId: "p1",
+    projectIds: ["p1"],
   },
   {
     id: "e3",
@@ -150,7 +150,7 @@ export const mockEmployees: Employee[] = [
     status: "active",
     joinDate: "2023-07-10",
     skills: ["Framing", "Finishing", "Blueprint Reading"],
-    projectId: "p2",
+    projectIds: ["p2"],
   },
   {
     id: "e4",
@@ -162,7 +162,7 @@ export const mockEmployees: Employee[] = [
     status: "active",
     joinDate: "2023-09-05",
     skills: ["Pipe Installation", "Drainage Systems", "Water Supply"],
-    projectId: "p2",
+    projectIds: ["p2"],
   },
 ]
 

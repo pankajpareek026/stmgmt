@@ -10,7 +10,7 @@ export async function GET(
         await connectDB();
         const { id } = await params;
 
-        const employee = await Employee.findById(id).populate('projectId', 'name');
+        const employee = await Employee.findById(id).populate('projectIds', 'name');
 
         if (!employee) {
             return NextResponse.json(
@@ -63,7 +63,7 @@ export async function PUT(
         employee = await Employee.findByIdAndUpdate(id, body, {
             new: true,
             runValidators: true
-        });
+        }).populate('projectIds', 'name');
 
         return NextResponse.json({
             success: true,

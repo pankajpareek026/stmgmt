@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, AlertCircle } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { apiService } from "@/lib/api-service"
 import { Project } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
@@ -32,7 +33,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
         dailyRate: "",
         status: "active",
         joinDate: new Date().toISOString().split("T")[0],
-        projectId: "",
+        projectIds: [] as string[],
     })
 
     // Reset error when dialog opens
@@ -52,11 +53,10 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
 
         setIsSaving(true)
         try {
-            // Prepare payload - handle empty projectId
             const payload = {
                 ...formData,
                 dailyRate: Number(formData.dailyRate),
-                projectId: formData.projectId || undefined // Send undefined if empty to avoid CastError
+                projectIds: formData.projectIds
             }
 
             await apiService.post("/employees", payload)
@@ -71,7 +71,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                 dailyRate: "",
                 status: "active",
                 joinDate: new Date().toISOString().split("T")[0],
-                projectId: "",
+                projectIds: [],
             })
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to add employee")
@@ -138,22 +138,31 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="projectId">Assign Project (Optional)</Label>
-                        <Select
-                            value={formData.projectId}
-                            onValueChange={(value: string) => setFormData({ ...formData, projectId: value })}
-                        >
-                            <SelectTrigger id="projectId">
-                                <SelectValue placeholder={projectsLoading ? "Loading projects..." : "Select project"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(projects || []).map((project: Project) => (
-                                    <SelectItem key={project.id} value={project.id}>
+                        <Label>Project Assignments</Label>
+                        <div className="border rounded-md p-3 space-y-2 max-h-[150px] overflow-y-auto bg-background">
+                            {projectsLoading ? (
+                                <div className="flex items-center justify-center p-2">
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : (projects || []).map((project: Project) => (
+                                <div key={project.id} className="flex items-center gap-2">
+                                    <Checkbox
+                                        id={`add-proj-${project.id}`}
+                                        checked={formData.projectIds.includes(project.id)}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                setFormData({ ...formData, projectIds: [...formData.projectIds, project.id] })
+                                            } else {
+                                                setFormData({ ...formData, projectIds: formData.projectIds.filter(id => id !== project.id) })
+                                            }
+                                        }}
+                                    />
+                                    <Label htmlFor={`add-proj-${project.id}`} className="text-sm cursor-pointer truncate">
                                         {project.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                    </Label>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number *</Label>

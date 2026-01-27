@@ -250,8 +250,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
   }, [open])
 
   const projectEmployees = (employees || []).filter((emp: Employee) => {
-    const pId = typeof emp.projectId === 'object' && emp.projectId !== null ? (emp.projectId as any).id : emp.projectId
-    return pId === selectedProject
+    return emp.projectIds?.includes(selectedProject)
   })
   const allWorkers = [...projectEmployees, ...temporaryWorkers]
 
@@ -335,11 +334,17 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
       return
     }
 
-    const records = (Object.values(attendanceData) as AttendanceEntry[]).map((record: AttendanceEntry) => ({
-      ...record,
-      projectId: selectedProject,
-      date: selectedDate
-    }))
+    const records = (Object.values(attendanceData) as AttendanceEntry[]).map((record: AttendanceEntry) => {
+      const emp = (allWorkers || []).find(e => e.id === record.employeeId)
+      const project = (projects || []).find(p => p.id === selectedProject)
+      return {
+        ...record,
+        employeeName: emp?.name || "Unknown Worker",
+        projectId: selectedProject,
+        projectName: project?.name || "Unknown Project",
+        date: selectedDate
+      }
+    })
 
     if (records.length === 0) {
       setError("No attendance data to save")

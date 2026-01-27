@@ -44,7 +44,11 @@ const projectSchema = new mongoose.Schema({
     workersCount: {
         type: Number,
         default: 0
-    }
+    },
+    employeeIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Employee'
+    }]
 }, {
     timestamps: true,
     toJSON: {

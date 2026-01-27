@@ -56,6 +56,20 @@ export function EmployeeCard({ employee, stats }: EmployeeCardProps) {
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="font-semibold">${employee.dailyRate}/day</span>
               </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                {employee.projectIds?.map((proj: any) => {
+                  const name = typeof proj === 'object' ? proj.name : `Project ${proj}`
+                  const key = typeof proj === 'object' ? (proj.id || proj._id) : proj
+                  return (
+                    <Badge key={key} variant="secondary" className="text-[10px] py-0 px-1 bg-primary/5 text-primary border-primary/10">
+                      {name}
+                    </Badge>
+                  )
+                })}
+                {(!employee.projectIds || employee.projectIds.length === 0) && (
+                  <span className="text-[10px] text-muted-foreground italic">No assignment</span>
+                )}
+              </div>
             </div>
 
             {/* Project breakdown summary */}

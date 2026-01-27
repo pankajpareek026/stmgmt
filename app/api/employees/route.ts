@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     try {
         await connectDB();
 
-        const employees = await Employee.find().populate('projectId', 'name');
+        const employees = await Employee.find().populate('projectIds', 'name');
 
         return NextResponse.json({
             success: true,
