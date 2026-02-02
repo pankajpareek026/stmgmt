@@ -17,10 +17,6 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
         }
 
-        const date = new Date(paymentDate);
-        const month = date.getMonth();
-        const year = date.getFullYear();
-
         // Get employee daily rate
         const employee = await Employee.findById(employeeId);
         if (!employee) {
@@ -28,16 +24,11 @@ export async function GET(req: NextRequest) {
         }
         const dailyRate = employee.dailyRate || 0;
 
-        // Calculate Month Start and End for attendance query
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-
-        // Get Attendance earnings for this project in this month
+        // Get ALL Attendance earnings for this employee and project (regardless of month/date)
         const attendanceDocs = await Attendance.find({
             employeeId: new mongoose.Types.ObjectId(employeeId),
-            projectId: new mongoose.Types.ObjectId(projectId),
-            date: { $gte: monthStart, $lte: monthEnd }
-        });
+            projectId: new mongoose.Types.ObjectId(projectId)
+        }).sort({ date: 1 }); // Sort by date ascending
 
         let daysPresent = 0;
         let daysHalfDay = 0;
@@ -53,26 +44,35 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Get Already Paid from Aggregated Payroll History
-        const monthlyPayrollDoc = await Payroll.findOne({
-            employeeId: new mongoose.Types.ObjectId(employeeId),
-            month,
-            year
+        // Get ALL Already Paid amounts from ALL Payroll History (across all months)
+        const allPayrollDocs = await Payroll.find({
+            employeeId: new mongoose.Types.ObjectId(employeeId)
         });
 
         let alreadyPaid = 0;
-        if (monthlyPayrollDoc && monthlyPayrollDoc.payments) {
-            const targetProjId = projectId.trim();
-            alreadyPaid = monthlyPayrollDoc.payments.reduce((sum: number, p: any) => {
-                const pProjId = p.projectId ? p.projectId.toString().trim() : "";
+        const allPastPayments: any[] = [];
 
-                // Deduct if payment matches THIS project 
-                // OR if it's a general payment (no project ID)
-                if (pProjId === targetProjId || pProjId === "") {
-                    return sum + p.amount;
+        if (allPayrollDocs && allPayrollDocs.length > 0) {
+            const targetProjId = projectId.trim();
+
+            allPayrollDocs.forEach(doc => {
+                if (doc.payments && doc.payments.length > 0) {
+                    doc.payments.forEach((p: any) => {
+                        const pProjId = p.projectId ? p.projectId.toString().trim() : "";
+
+                        // Include if payment matches THIS project OR if it's a general payment (no project ID)
+                        if (pProjId === targetProjId || pProjId === "") {
+                            alreadyPaid += p.amount;
+                            allPastPayments.push({
+                                amount: p.amount,
+                                paymentDate: p.paymentDate,
+                                description: p.description,
+                                isGeneral: !p.projectId
+                            });
+                        }
+                    });
                 }
-                return sum;
-            }, 0);
+            });
         }
 
         const netDue = Math.max(0, totalEarned - alreadyPaid);
@@ -89,15 +89,9 @@ export async function GET(req: NextRequest) {
                 status: att.status,
                 amount: att.status === 'present' ? dailyRate : (att.status === 'half-day' ? dailyRate / 2 : 0)
             })),
-            pastPayments: (monthlyPayrollDoc?.payments || []).filter((p: any) => {
-                const pProjId = p.projectId ? p.projectId.toString().trim() : "";
-                return pProjId === projectId.trim() || pProjId === "";
-            }).map((p: any) => ({
-                amount: p.amount,
-                paymentDate: p.paymentDate,
-                description: p.description,
-                isGeneral: !p.projectId
-            }))
+            pastPayments: allPastPayments.sort((a, b) =>
+                new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+            )
         });
 
     } catch (error: any) {

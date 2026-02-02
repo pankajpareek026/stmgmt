@@ -264,7 +264,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                 })}
                             />
                             <p className="text-[10px] text-muted-foreground">
-                                Calculating attendance for: {new Date(formData.paymentDate || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                Showing total outstanding balance (all time)
                             </p>
                         </div>
 
@@ -310,15 +310,15 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                             <span>₹{((calculationBreakdown?.daysHalfDay || 0) * ((calculationBreakdown?.dailyRate || 0) / 2)).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-blue-600 font-medium">
-                                            <span>Total Gross Earned</span>
+                                            <span>Total Gross Earned (All Time)</span>
                                             <span>₹{(calculationBreakdown?.totalEarned || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-red-500">
-                                            <span>Already Paid (This Project/Month)</span>
+                                            <span>Already Paid (All Time)</span>
                                             <span>- ₹{(calculationBreakdown?.alreadyPaid || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between border-t pt-2 font-bold text-green-600 text-sm">
-                                            <span>Net Due Amount</span>
+                                            <span>Total Outstanding Balance</span>
                                             <span>₹{(calculationBreakdown?.netDue || 0).toLocaleString()}</span>
                                         </div>
 
@@ -335,12 +335,12 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                                 <div className="pt-3 space-y-4 animate-in fade-in duration-300">
                                                     {/* Attendance List */}
                                                     <div>
-                                                        <p className="font-bold mb-2 uppercase text-[9px] text-muted-foreground tracking-wider bg-muted/50 p-1 rounded">Attendance History ({formData.projectId ? 'Project Specific' : 'All'})</p>
+                                                        <p className="font-bold mb-2 uppercase text-[9px] text-muted-foreground tracking-wider bg-muted/50 p-1 rounded">Complete Attendance History (All Time)</p>
                                                         <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                                                             {calculationBreakdown?.attendanceRecords?.length > 0 ? (
                                                                 calculationBreakdown.attendanceRecords.map((rec: any, idx: number) => (
                                                                     <div key={idx} className="flex justify-between items-center py-1 border-b border-border/10 last:border-0 opacity-90">
-                                                                        <span>{new Date(rec.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • <span className="capitalize">{rec.status}</span></span>
+                                                                        <span>{new Date(rec.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} • <span className="capitalize">{rec.status}</span></span>
                                                                         <span className="font-medium text-blue-600">₹{rec.amount}</span>
                                                                     </div>
                                                                 ))
@@ -352,13 +352,13 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
 
                                                     {/* Past Payments List */}
                                                     <div>
-                                                        <p className="font-bold mb-2 uppercase text-[9px] text-muted-foreground tracking-wider bg-muted/50 p-1 rounded">Previous Payments (Adjustments)</p>
+                                                        <p className="font-bold mb-2 uppercase text-[9px] text-muted-foreground tracking-wider bg-muted/50 p-1 rounded">Complete Payment History (All Time)</p>
                                                         <div className="max-h-40 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                                             {calculationBreakdown?.pastPayments?.length > 0 ? (
                                                                 calculationBreakdown.pastPayments.map((p: any, idx: number) => (
                                                                     <div key={idx} className="flex justify-between items-start py-1 border-b border-border/10 last:border-0 opacity-90">
                                                                         <div className="flex flex-col">
-                                                                            <span className="font-medium">{new Date(p.paymentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} {p.isGeneral && <Badge variant="outline" className="text-[8px] py-0 px-1 ml-1 h-3 border-yellow-500/30 text-yellow-600">General Advance</Badge>}</span>
+                                                                            <span className="font-medium">{new Date(p.paymentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} {p.isGeneral && <Badge variant="outline" className="text-[8px] py-0 px-1 ml-1 h-3 border-yellow-500/30 text-yellow-600">General Advance</Badge>}</span>
                                                                             {p.description && <span className="text-[9px] opacity-70 italic leading-tight">{p.description}</span>}
                                                                         </div>
                                                                         <span className="font-bold text-red-500 ml-2">-₹{p.amount}</span>

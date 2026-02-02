@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Suspense, useState, use } from "react"
@@ -171,9 +172,13 @@ function ProjectDetailContent({ id }: { id: string }) {
             <Users className="h-4 w-4 mr-2" />
             Mark Attendance
           </Button>
-          <Button variant="outline" onClick={() => setShowProcessPayroll(true)}>
+          <Button
+            variant="secondary"
+            className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20"
+            onClick={() => setShowProcessPayroll(true)}
+          >
             <DollarSign className="h-4 w-4 mr-2" />
-            Process Payment
+            Record Payment
           </Button>
           <Button variant="outline" onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4 mr-2" />

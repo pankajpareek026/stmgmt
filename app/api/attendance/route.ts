@@ -52,16 +52,40 @@ export async function POST(request: NextRequest) {
         }
 
         // Create bulk operations
-        const operations = records.map((record: any) => ({
-            updateOne: {
-                filter: {
-                    employeeId: record.employeeId,
-                    date: record.date
-                },
-                update: { $set: record },
-                upsert: true
+        const operations = records.map((record: any) => {
+            // Normalize the date to ensure consistency
+            // If date is a string like "2026-02-05", convert to Date at midnight UTC
+            let normalizedDate;
+            if (typeof record.date === 'string') {
+                // Parse as UTC midnight to avoid timezone issues
+                normalizedDate = new Date(record.date + 'T00:00:00.000Z');
+            } else if (record.date instanceof Date) {
+                normalizedDate = record.date;
+            } else {
+                normalizedDate = new Date(record.date);
             }
-        }));
+
+            // Create the record with normalized date
+            const normalizedRecord = {
+                ...record,
+                date: normalizedDate
+            };
+
+            return {
+                updateOne: {
+                    filter: {
+                        employeeId: record.employeeId,
+                        // Use date range filter to match the same day regardless of exact timestamp
+                        date: {
+                            $gte: new Date(normalizedDate.getFullYear(), normalizedDate.getMonth(), normalizedDate.getDate()),
+                            $lt: new Date(normalizedDate.getFullYear(), normalizedDate.getMonth(), normalizedDate.getDate() + 1)
+                        }
+                    },
+                    update: { $set: normalizedRecord },
+                    upsert: true
+                }
+            };
+        });
 
         if (operations.length > 0) {
             await Attendance.bulkWrite(operations);
