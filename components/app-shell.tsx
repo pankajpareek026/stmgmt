@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { getAuthToken } from '@/lib/api-service';
 import { DesktopSidebar } from '@/components/desktop-sidebar';
 import { MobileNav } from '@/components/mobile-nav';
+import { CurrencyProvider } from '@/components/currency-provider';
 
 const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password'];
 
@@ -61,14 +62,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     // Authenticated Layout
     return (
-        <div className="min-h-screen bg-background">
-            <DesktopSidebar />
-            <MobileNav />
+        <CurrencyProvider>
+            <div className="min-h-screen bg-background">
+                <DesktopSidebar />
+                <MobileNav />
 
-            {/* Main content area with padding for navigation */}
-            <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0">
-                <div className="container mx-auto p-4 lg:p-6">{children}</div>
-            </main>
-        </div>
+                {/* Main content area with padding for navigation */}
+                <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0">
+                    <div className="container mx-auto p-4 lg:p-6">{children}</div>
+                </main>
+            </div>
+        </CurrencyProvider>
     );
 }

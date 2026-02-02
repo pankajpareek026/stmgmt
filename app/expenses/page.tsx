@@ -12,6 +12,7 @@ import { AddExpenseDialog } from "@/components/add-expense-dialog"
 import { useApi } from "@/hooks/use-api"
 import { Expense, Project } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
+import { useCurrency } from "@/components/currency-provider"
 import { apiService } from "@/lib/api-service"
 import { toast } from "sonner"
 import { Check, X } from "lucide-react"
@@ -33,6 +34,7 @@ const categoryColors: Record<string, string> = {
 }
 
 function ExpensesContent() {
+  const { formatCurrency } = useCurrency()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
@@ -133,7 +135,7 @@ function ExpensesContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Expenses</p>
-                <p className="text-2xl font-bold">${totalExpenses.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalExpenses)}</p>
               </div>
             </div>
           </CardContent>
@@ -147,7 +149,7 @@ function ExpensesContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold">${totalApproved.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalApproved)}</p>
               </div>
             </div>
           </CardContent>
@@ -161,7 +163,7 @@ function ExpensesContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold">${totalPending.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
               </div>
             </div>
           </CardContent>
@@ -176,10 +178,9 @@ function ExpensesContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Avg Expense</p>
                 <p className="text-2xl font-bold">
-                  $
-                  {filteredExpenses.length > 0
-                    ? Math.round(totalExpenses / filteredExpenses.length).toLocaleString()
-                    : 0}
+                  {formatCurrency(
+                    filteredExpenses.length > 0 ? Math.round(totalExpenses / filteredExpenses.length) : 0,
+                  )}
                 </p>
               </div>
             </div>
@@ -273,7 +274,7 @@ function ExpensesContent() {
                     <TableCell className="text-muted-foreground">{expense.projectName}</TableCell>
                     <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-muted-foreground">{expense.submittedBy}</TableCell>
-                    <TableCell className="font-bold">${expense.amount.toLocaleString()}</TableCell>
+                    <TableCell className="font-bold">{formatCurrency(expense.amount)}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn(statusColors[expense.status as keyof typeof statusColors])}>
                         {expense.status}
@@ -355,7 +356,7 @@ function ExpensesContent() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Amount</p>
-                    <p className="text-xl font-bold text-primary">${expense.amount.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(expense.amount)}</p>
                   </div>
                 </div>
 

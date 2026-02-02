@@ -9,8 +9,10 @@ import { EmployeeCard } from "@/components/employee-card"
 import { AddEmployeeDialog } from "@/components/add-employee-dialog"
 import { useApi } from "@/hooks/use-api"
 import { Employee } from "@/lib/mock-data"
+import { useCurrency } from "@/components/currency-provider"
 
 function EmployeesContent() {
+  const { formatCurrency } = useCurrency()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [roleFilter, setRoleFilter] = useState<string>("all")
@@ -127,7 +129,16 @@ function EmployeesContent() {
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">Avg Daily Rate</p>
           <p className="text-2xl font-bold mt-1">
-            ${safeEmployees.length > 0 ? (safeEmployees.reduce((sum: number, e: Employee) => sum + e.dailyRate, 0) / safeEmployees.length).toFixed(0) : 0}
+            {formatCurrency(
+              safeEmployees.length > 0
+                ? Number(
+                  (
+                    safeEmployees.reduce((sum: number, e: Employee) => sum + e.dailyRate, 0) /
+                    safeEmployees.length
+                  ).toFixed(0),
+                )
+                : 0,
+            )}
           </p>
         </div>
       </div>

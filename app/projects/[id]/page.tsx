@@ -38,6 +38,7 @@ import { useRouter } from "next/navigation"
 import { EditProjectDialog } from "@/components/edit-project-dialog"
 import { ManageMembersDialog } from "@/components/manage-members-dialog"
 import { ProcessPayrollDialog } from "@/components/process-payroll-dialog"
+import { useCurrency } from "@/components/currency-provider"
 
 const statusColors = {
   active: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -47,6 +48,7 @@ const statusColors = {
 }
 
 function ProjectDetailContent({ id }: { id: string }) {
+  const { formatCurrency, formatCompact } = useCurrency()
   const router = useRouter()
   const [showMarkAttendance, setShowMarkAttendance] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -259,7 +261,7 @@ function ProjectDetailContent({ id }: { id: string }) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Budget</p>
-                <p className="text-2xl font-bold">${(project.budget / 1000).toFixed(0)}K</p>
+                <p className="text-2xl font-bold">{formatCompact(project.budget)}</p>
               </div>
             </div>
           </CardContent>
@@ -273,7 +275,7 @@ function ProjectDetailContent({ id }: { id: string }) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Spent</p>
-                <p className="text-2xl font-bold text-green-600">₹{(projectTotalPaid / 1000).toFixed(1)}K</p>
+                <p className="text-2xl font-bold text-green-600">{formatCompact(projectTotalPaid)}</p>
               </div>
             </div>
           </CardContent>
@@ -301,7 +303,7 @@ function ProjectDetailContent({ id }: { id: string }) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Pending</p>
-                <p className="text-2xl font-bold text-orange-600">₹{(projectTotalPending / 1000).toFixed(1)}K</p>
+                <p className="text-2xl font-bold text-orange-600">{formatCompact(projectTotalPending)}</p>
               </div>
             </div>
           </CardContent>
@@ -342,7 +344,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Budget Progress</span>
                   <span className="text-sm font-semibold">
-                    ${(project.spent / 1000).toFixed(0)}K / ${(project.budget / 1000).toFixed(0)}K
+                    {formatCompact(project.spent)} / {formatCompact(project.budget)}
                   </span>
                 </div>
                 <Progress
@@ -393,7 +395,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                         <p className="text-xs text-muted-foreground">{expense.category}</p>
                       </div>
                       <div className="text-right ml-4">
-                        <p className="text-sm font-semibold">${expense.amount.toLocaleString()}</p>
+                        <p className="text-sm font-semibold">{formatCurrency(expense.amount)}</p>
                         <Badge
                           variant="outline"
                           className={cn(
@@ -686,10 +688,10 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 <p className="text-xs text-muted-foreground">days</p>
                               </td>
                               <td className="py-3 px-2 text-right">
-                                <p className="text-sm font-medium text-blue-600">₹{totalEarned.toLocaleString()}</p>
+                                <p className="text-sm font-medium text-blue-600">{formatCurrency(totalEarned)}</p>
                               </td>
                               <td className="py-3 px-2 text-right">
-                                <p className="text-sm font-medium text-green-600">₹{totalPaid.toLocaleString()}</p>
+                                <p className="text-sm font-medium text-green-600">{formatCurrency(totalPaid)}</p>
                               </td>
                               <td className="py-3 px-2 text-right">
                                 <p className={cn(
@@ -705,7 +707,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                                   "text-sm font-bold",
                                   pendingAmount > 0 ? "text-orange-600" : "text-muted-foreground"
                                 )}>
-                                  ₹{pendingAmount.toLocaleString()}
+                                  {formatCurrency(pendingAmount)}
                                 </p>
                               </td>
                             </tr>
@@ -719,7 +721,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                             {projectAttendance.length}
                           </td>
                           <td className="py-3 px-2 text-right text-sm text-blue-600">
-                            ₹{projectEmployees.reduce((sum, emp) => {
+                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
                               const empId = emp.id || (emp as any)._id;
                               const empAtt = projectAttendance.filter((att: any) => {
                                 const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
@@ -733,10 +735,10 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 if (att.status === 'half-day') return s + (rate / 2);
                                 return s;
                               }, 0);
-                            }, 0).toLocaleString()}
+                            }, 0))}
                           </td>
                           <td className="py-3 px-2 text-right text-sm text-green-600">
-                            ₹{projectEmployees.reduce((sum, emp) => {
+                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
                               const empId = emp.id || (emp as any)._id;
                               let paid = 0;
                               if (payrollData) {
@@ -751,7 +753,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 });
                               }
                               return sum + paid;
-                            }, 0).toLocaleString()}
+                            }, 0))}
                           </td>
                           <td className="py-3 px-2 text-right text-sm text-orange-600">
                             {formatDayCount(projectEmployees.reduce((sum, emp) => {
@@ -783,7 +785,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                             }, 0))}
                           </td>
                           <td className="py-3 px-2 text-right text-sm text-orange-600 font-bold">
-                            ₹{(() => {
+                            {formatCurrency((() => {
                               const totalEarned = projectEmployees.reduce((sum, emp) => {
                                 const empId = emp.id || (emp as any)._id;
                                 const empAtt = projectAttendance.filter((att: any) => {
@@ -813,8 +815,8 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 }
                                 return sum + paid;
                               }, 0);
-                              return Math.max(0, totalEarned - totalPaid).toLocaleString();
-                            })()}
+                              return Math.max(0, totalEarned - totalPaid);
+                            })())}
                           </td>
                         </tr>
                       </tfoot>
@@ -891,11 +893,11 @@ function ProjectDetailContent({ id }: { id: string }) {
                             </div>
                             <div className="p-2 rounded bg-blue-500/5 border border-blue-500/20">
                               <p className="text-xs text-muted-foreground mb-1">Total Earned</p>
-                              <p className="text-lg font-semibold text-blue-600">₹{totalEarned.toLocaleString()}</p>
+                              <p className="text-lg font-semibold text-blue-600">{formatCurrency(totalEarned)}</p>
                             </div>
                             <div className="p-2 rounded bg-green-500/5 border border-green-500/20">
                               <p className="text-xs text-muted-foreground mb-1">Total Paid</p>
-                              <p className="text-lg font-semibold text-green-600">₹{totalPaid.toLocaleString()}</p>
+                              <p className="text-lg font-semibold text-green-600">{formatCurrency(totalPaid)}</p>
                             </div>
                             <div className={cn(
                               "p-2 rounded border",
@@ -922,7 +924,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 "text-lg font-bold",
                                 pendingAmount > 0 ? "text-orange-600" : "text-muted-foreground"
                               )}>
-                                ₹{pendingAmount.toLocaleString()}
+                                {formatCurrency(pendingAmount)}
                               </p>
                             </div>
                           </div>
@@ -941,7 +943,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                         <div>
                           <p className="text-xs text-muted-foreground">Total Earned</p>
                           <p className="text-lg font-semibold text-blue-600">
-                            ₹{projectEmployees.reduce((sum, emp) => {
+                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
                               const empId = emp.id || (emp as any)._id;
                               const empAtt = projectAttendance.filter((att: any) => {
                                 const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
@@ -953,13 +955,13 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 if (att.status === 'half-day') return s + (rate / 2);
                                 return s;
                               }, 0);
-                            }, 0).toLocaleString()}
+                            }, 0))}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Total Paid</p>
                           <p className="text-lg font-semibold text-green-600">
-                            ₹{projectEmployees.reduce((sum, emp) => {
+                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
                               const empId = emp.id || (emp as any)._id;
                               let paid = 0;
                               if (payrollData) {
@@ -974,7 +976,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 });
                               }
                               return sum + paid;
-                            }, 0).toLocaleString()}
+                            }, 0))}
                           </p>
                         </div>
                         <div>
@@ -1012,7 +1014,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                         <div>
                           <p className="text-xs text-muted-foreground">Total Pending</p>
                           <p className="text-lg font-bold text-orange-600">
-                            ₹{(() => {
+                            {formatCurrency((() => {
                               const totalEarned = projectEmployees.reduce((sum, emp) => {
                                 const empId = emp.id || (emp as any)._id;
                                 const empAtt = projectAttendance.filter((att: any) => {
@@ -1042,8 +1044,8 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 }
                                 return sum + paid;
                               }, 0);
-                              return Math.max(0, totalEarned - totalPaid).toLocaleString();
-                            })()}
+                              return Math.max(0, totalEarned - totalPaid);
+                            })())}
                           </p>
                         </div>
                       </div>

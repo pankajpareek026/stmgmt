@@ -11,6 +11,7 @@ import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
+import { useCurrency } from "@/components/currency-provider"
 
 interface NewProjectDialogProps {
     open: boolean
@@ -19,6 +20,7 @@ interface NewProjectDialogProps {
 }
 
 export function NewProjectDialog({ open, onOpenChange, onSaveSuccess }: NewProjectDialogProps) {
+    const { currency } = useCurrency()
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -128,7 +130,7 @@ export function NewProjectDialog({ open, onOpenChange, onSaveSuccess }: NewProje
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="budget">Total Budget (₹) *</Label>
+                            <Label htmlFor="budget">Total Budget ({currency.symbol}) *</Label>
                             <Input
                                 id="budget"
                                 type="number"

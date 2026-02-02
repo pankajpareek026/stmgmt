@@ -6,8 +6,10 @@ import { ProjectStatusCard } from "@/components/project-status-card"
 import { RecentActivity } from "@/components/recent-activity"
 import { useApi } from "@/hooks/use-api"
 import { Project, Employee, Attendance, Payroll, Expense } from "@/lib/mock-data"
+import { useCurrency } from "@/components/currency-provider"
 
 export default function DashboardPage() {
+  const { formatCompact } = useCurrency()
   const { data: projects, loading: projectsLoading, error: projectsError } = useApi<Project[]>("/projects")
   const { data: employees, loading: employeesLoading, error: employeesError } = useApi<Employee[]>("/employees")
   const { data: attendance, loading: attendanceLoading } = useApi<Attendance[]>("/attendance")
@@ -123,7 +125,7 @@ export default function DashboardPage() {
         <StatCard
           title="Budget Utilization"
           value={`${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}%`}
-          change={`$${(totalSpent / 1000000).toFixed(2)}M of $${(totalBudget / 1000000).toFixed(2)}M`}
+          change={`${formatCompact(totalSpent)} of ${formatCompact(totalBudget)}`}
           changeType="neutral"
           icon={DollarSign}
         />

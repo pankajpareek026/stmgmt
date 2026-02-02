@@ -15,6 +15,7 @@ import { Payroll } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { apiService } from "@/lib/api-service"
 import { toast } from "sonner"
+import { useCurrency } from "@/components/currency-provider"
 // Removed redundant Check import here if it was separate before
 
 const statusColors = {
@@ -24,6 +25,7 @@ const statusColors = {
 }
 
 function PayrollContent() {
+  const { formatCurrency } = useCurrency()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [periodFilter, setPeriodFilter] = useState<string>("all")
@@ -144,7 +146,7 @@ function PayrollContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Payout</p>
-                <p className="text-2xl font-bold">₹{totalNetPay.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalNetPay)}</p>
               </div>
             </div>
           </CardContent>
@@ -158,7 +160,7 @@ function PayrollContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Base Pay</p>
-                <p className="text-2xl font-bold">₹{totalBasePay.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalBasePay)}</p>
               </div>
             </div>
           </CardContent>
@@ -172,7 +174,7 @@ function PayrollContent() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Overtime Pay</p>
-                <p className="text-2xl font-bold">₹{totalOvertimePay.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalOvertimePay)}</p>
               </div>
             </div>
           </CardContent>
@@ -275,7 +277,7 @@ function PayrollContent() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{periodName}</TableCell>
                       <TableCell><Badge variant="secondary" className="font-normal">Payment</Badge></TableCell>
-                      <TableCell className="font-bold">₹{tx.amount.toLocaleString()}</TableCell>
+                      <TableCell className="font-bold">{formatCurrency(tx.amount)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn(statusColors[tx.status as keyof typeof statusColors])}>
                           {tx.status}
@@ -342,7 +344,7 @@ function PayrollContent() {
 
                   <div className="flex items-center justify-between py-2 border-t border-b border-dashed">
                     <span className="text-sm text-muted-foreground">Amount</span>
-                    <span className="font-bold">₹{tx.amount.toLocaleString()}</span>
+                    <span className="font-bold">{formatCurrency(tx.amount)}</span>
                   </div>
 
                   <div className="flex gap-2 mt-3">

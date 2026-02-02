@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Phone, Mail, DollarSign, Calendar, ArrowRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -6,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import type { Employee } from "@/lib/mock-data"
+import { useCurrency } from "@/components/currency-provider"
 
 interface EmployeeCardProps {
   employee: Employee
@@ -19,6 +22,7 @@ const statusColors = {
 }
 
 export function EmployeeCard({ employee, stats }: EmployeeCardProps) {
+  const { formatCurrency } = useCurrency()
   return (
     <Card className="hover:border-primary/50 transition-colors">
       <CardContent className="p-6">
@@ -54,7 +58,7 @@ export function EmployeeCard({ employee, stats }: EmployeeCardProps) {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-semibold">${employee.dailyRate}/day</span>
+                <span className="font-semibold">{formatCurrency(employee.dailyRate)} / day</span>
               </div>
               <div className="flex flex-wrap gap-1 mt-3">
                 {employee.projectIds?.map((proj: any) => {
@@ -82,12 +86,12 @@ export function EmployeeCard({ employee, stats }: EmployeeCardProps) {
                       <div className="flex justify-between items-center">
                         <span className="font-semibold truncate max-w-[150px]">{s.projectName}</span>
                         <span className={cn("font-bold px-1.5 py-0.5 rounded text-[10px]", s.netDue > 0 ? "bg-red-500/10 text-red-600" : "bg-green-500/10 text-green-600")}>
-                          {s.netDue > 0 ? `Due: ₹${s.netDue.toLocaleString()}` : "Paid"}
+                          {s.netDue > 0 ? `Due: ${formatCurrency(s.netDue)}` : "Paid"}
                         </span>
                       </div>
                       <div className="flex justify-between text-muted-foreground opacity-80">
-                        <span>Earned: ₹{s.totalEarned.toLocaleString()}</span>
-                        <span>Paid: ₹{s.totalPaid.toLocaleString()}</span>
+                        <span>Earned: {formatCurrency(s.totalEarned)}</span>
+                        <span>Paid: {formatCurrency(s.totalPaid)}</span>
                       </div>
                     </div>
                   ))}

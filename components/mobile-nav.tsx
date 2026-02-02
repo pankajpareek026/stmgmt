@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, FolderKanban, Users, ClipboardCheck, Wallet, Receipt, BarChart3, Menu, X, Lock } from "lucide-react"
+import { LayoutDashboard, FolderKanban, Users, ClipboardCheck, Wallet, Receipt, BarChart3, Menu, X, Lock, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -15,6 +15,7 @@ const navItems = [
   { icon: Wallet, label: "Payroll", href: "/payroll" },
   { icon: Receipt, label: "Expenses", href: "/expenses" },
   { icon: BarChart3, label: "Reports", href: "/reports" },
+  { icon: Settings, label: "Settings", href: "/profile/settings" },
   { icon: Lock, label: "Security", href: "/profile/security" },
 ]
 

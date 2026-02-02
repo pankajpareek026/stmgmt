@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowRight, MapPin } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import type { Project } from "@/lib/mock-data"
+import { useCurrency } from "@/components/currency-provider"
 
 interface ProjectStatusCardProps {
   project: Project
@@ -19,6 +22,7 @@ const statusColors = {
 }
 
 export function ProjectStatusCard({ project }: ProjectStatusCardProps) {
+  const { formatCompact } = useCurrency()
   const budgetPercent = (project.spent / project.budget) * 100
 
   return (
@@ -49,12 +53,12 @@ export function ProjectStatusCard({ project }: ProjectStatusCardProps) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">Budget</p>
-            <p className="font-semibold mt-1">₹ {(project.budget / 1000).toFixed(0)}K</p>
+            <p className="font-semibold mt-1">{formatCompact(project.budget)}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Spent</p>
             <p className="font-semibold mt-1">
-              ₹ {(project.spent / 1000).toFixed(0)}K
+              {formatCompact(project.spent)}
               <span
                 className={cn(
                   "text-xs ml-1",

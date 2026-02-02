@@ -9,8 +9,10 @@ import { ProjectStatusCard } from "@/components/project-status-card"
 import { NewProjectDialog } from "@/components/new-project-dialog"
 import { useApi } from "@/hooks/use-api"
 import { Project } from "@/lib/mock-data"
+import { useCurrency } from "@/components/currency-provider"
 
 export default function ProjectsPage() {
+  const { formatCompact } = useCurrency()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [showNewProject, setShowNewProject] = useState(false)
@@ -108,7 +110,7 @@ export default function ProjectsPage() {
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">Total Budget</p>
           <p className="text-2xl font-bold mt-1">
-            ${safeProjects.length > 0 ? (safeProjects.reduce((sum: number, p: Project) => sum + p.budget, 0) / 1000000).toFixed(1) : 0}M
+            {formatCompact(safeProjects.reduce((sum: number, p: Project) => sum + p.budget, 0))}
           </p>
         </div>
       </div>

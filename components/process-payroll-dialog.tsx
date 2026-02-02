@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { DatePicker } from "@/components/ui/date-picker"
+import { useCurrency } from "@/components/currency-provider"
 
 interface ProcessPayrollDialogProps {
     open: boolean
@@ -25,6 +26,7 @@ interface ProcessPayrollDialogProps {
 }
 
 export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initialEmployeeId, initialProjectId }: ProcessPayrollDialogProps) {
+    const { currency, formatCurrency } = useCurrency()
     const [isSaving, setIsSaving] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -177,7 +179,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Amount Paid</span>
-                                    <span className="font-bold text-green-600">₹{Number(formData.amount).toLocaleString()}</span>
+                                    <span className="font-bold text-green-600">{formatCurrency(Number(formData.amount) || 0)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Project</span>
@@ -284,7 +286,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                                         ) : (
                                             <>
-                                                <span className="text-green-600">₹{(calculationBreakdown?.netDue || 0).toLocaleString()}</span>
+                                                <span className="text-green-600">{formatCurrency(calculationBreakdown?.netDue || 0)}</span>
                                                 {showBreakdown ? (
                                                     <ChevronUp className="h-3 w-3 text-muted-foreground" />
                                                 ) : (
@@ -302,24 +304,24 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                             <span>Amount</span>
                                         </div>
                                         <div className="flex justify-between text-muted-foreground">
-                                            <span>Days Present ({calculationBreakdown?.daysPresent || 0} × ₹{calculationBreakdown?.dailyRate || 0})</span>
-                                            <span>₹{((calculationBreakdown?.daysPresent || 0) * (calculationBreakdown?.dailyRate || 0)).toLocaleString()}</span>
+                                            <span>Days Present ({calculationBreakdown?.daysPresent || 0} × {formatCurrency(calculationBreakdown?.dailyRate || 0)})</span>
+                                            <span>{formatCurrency((calculationBreakdown?.daysPresent || 0) * (calculationBreakdown?.dailyRate || 0))}</span>
                                         </div>
                                         <div className="flex justify-between text-muted-foreground">
-                                            <span>Half Days ({calculationBreakdown?.daysHalfDay || 0} × ₹{(calculationBreakdown?.dailyRate || 0) / 2})</span>
-                                            <span>₹{((calculationBreakdown?.daysHalfDay || 0) * ((calculationBreakdown?.dailyRate || 0) / 2)).toLocaleString()}</span>
+                                            <span>Half Days ({calculationBreakdown?.daysHalfDay || 0} × {formatCurrency((calculationBreakdown?.dailyRate || 0) / 2)})</span>
+                                            <span>{formatCurrency((calculationBreakdown?.daysHalfDay || 0) * ((calculationBreakdown?.dailyRate || 0) / 2))}</span>
                                         </div>
                                         <div className="flex justify-between text-blue-600 font-medium">
                                             <span>Total Gross Earned (All Time)</span>
-                                            <span>₹{(calculationBreakdown?.totalEarned || 0).toLocaleString()}</span>
+                                            <span>{formatCurrency(calculationBreakdown?.totalEarned || 0)}</span>
                                         </div>
                                         <div className="flex justify-between text-red-500">
                                             <span>Already Paid (All Time)</span>
-                                            <span>- ₹{(calculationBreakdown?.alreadyPaid || 0).toLocaleString()}</span>
+                                            <span>- {formatCurrency(calculationBreakdown?.alreadyPaid || 0)}</span>
                                         </div>
                                         <div className="flex justify-between border-t pt-2 font-bold text-green-600 text-sm">
                                             <span>Total Outstanding Balance</span>
-                                            <span>₹{(calculationBreakdown?.netDue || 0).toLocaleString()}</span>
+                                            <span>{formatCurrency(calculationBreakdown?.netDue || 0)}</span>
                                         </div>
 
                                         <div className="pt-2 mt-2 border-t border-dashed">
@@ -341,7 +343,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                                                 calculationBreakdown.attendanceRecords.map((rec: any, idx: number) => (
                                                                     <div key={idx} className="flex justify-between items-center py-1 border-b border-border/10 last:border-0 opacity-90">
                                                                         <span>{new Date(rec.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} • <span className="capitalize">{rec.status}</span></span>
-                                                                        <span className="font-medium text-blue-600">₹{rec.amount}</span>
+                                                                        <span className="font-medium text-blue-600">{formatCurrency(rec.amount)}</span>
                                                                     </div>
                                                                 ))
                                                             ) : (
@@ -361,7 +363,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                                                             <span className="font-medium">{new Date(p.paymentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} {p.isGeneral && <Badge variant="outline" className="text-[8px] py-0 px-1 ml-1 h-3 border-yellow-500/30 text-yellow-600">General Advance</Badge>}</span>
                                                                             {p.description && <span className="text-[9px] opacity-70 italic leading-tight">{p.description}</span>}
                                                                         </div>
-                                                                        <span className="font-bold text-red-500 ml-2">-₹{p.amount}</span>
+                                                                        <span className="font-bold text-red-500 ml-2">-{formatCurrency(p.amount)}</span>
                                                                     </div>
                                                                 ))
                                                             ) : (
@@ -381,7 +383,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                         {/* Amount Block with Calculation */}
                         <div className="space-y-2 bg-muted/30 p-4 rounded-lg border">
                             <div className="flex justify-between items-center mb-2">
-                                <Label htmlFor="amount" className="text-base">Amount to Pay (₹) *</Label>
+                                <Label htmlFor="amount" className="text-base">Amount to Pay ({currency.symbol}) *</Label>
                                 {isCalculating ? (
                                     <Badge variant="outline" className="bg-background text-muted-foreground flex items-center gap-1">
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -389,7 +391,7 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                                     </Badge>
                                 ) : calculatedPay > 0 ? (
                                     <Badge variant="outline" className="bg-background text-green-600 border-green-200">
-                                        Attendance Due: ₹{calculatedPay.toLocaleString()}
+                                        Attendance Due: {formatCurrency(calculatedPay)}
                                     </Badge>
                                 ) : null}
                             </div>
