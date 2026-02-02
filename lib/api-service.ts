@@ -20,12 +20,14 @@ export function getAuthToken() {
     return authToken;
 }
 
-async function handleResponse(response: Response) {
+async function handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
-    return response.json();
+    const result = await response.json();
+    // Return the full response object to preserve success flag and other metadata
+    return result as T;
 }
 
 function getHeaders(includeAuth: boolean = false) {
@@ -44,36 +46,36 @@ function getHeaders(includeAuth: boolean = false) {
 }
 
 export const apiService = {
-    async get(endpoint: string, includeAuth: boolean = false) {
+    async get<T = any>(endpoint: string, includeAuth: boolean = false): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             headers: getHeaders(includeAuth),
         });
-        return handleResponse(response);
+        return handleResponse<T>(response);
     },
 
-    async post(endpoint: string, data: any, includeAuth: boolean = false) {
+    async post<T = any>(endpoint: string, data: any, includeAuth: boolean = false): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: getHeaders(includeAuth),
             body: JSON.stringify(data),
         });
-        return handleResponse(response);
+        return handleResponse<T>(response);
     },
 
-    async put(endpoint: string, data: any, includeAuth: boolean = false) {
+    async put<T = any>(endpoint: string, data: any, includeAuth: boolean = false): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'PUT',
             headers: getHeaders(includeAuth),
             body: JSON.stringify(data),
         });
-        return handleResponse(response);
+        return handleResponse<T>(response);
     },
 
-    async delete(endpoint: string, includeAuth: boolean = false) {
+    async delete<T = any>(endpoint: string, includeAuth: boolean = false): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'DELETE',
             headers: getHeaders(includeAuth),
         });
-        return handleResponse(response);
+        return handleResponse<T>(response);
     }
 };

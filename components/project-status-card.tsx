@@ -26,10 +26,10 @@ export function ProjectStatusCard({ project }: ProjectStatusCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-semibold truncate">{project.name}</CardTitle>
+            <CardTitle className="text-base font-semibold capitalize truncate">{project.name}</CardTitle>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
               <MapPin className="h-3 w-3" />
-              <span className="truncate">{project.location}</span>
+              <span className="truncate capitalize">{project.location}</span>
             </div>
           </div>
           <Badge variant="outline" className={cn("shrink-0", statusColors[project.status])}>
@@ -49,12 +49,12 @@ export function ProjectStatusCard({ project }: ProjectStatusCardProps) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">Budget</p>
-            <p className="font-semibold mt-1">${(project.budget / 1000).toFixed(0)}K</p>
+            <p className="font-semibold mt-1">₹ {(project.budget / 1000).toFixed(0)}K</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Spent</p>
             <p className="font-semibold mt-1">
-              ${(project.spent / 1000).toFixed(0)}K
+              ₹ {(project.spent / 1000).toFixed(0)}K
               <span
                 className={cn(
                   "text-xs ml-1",

@@ -24,12 +24,21 @@ export function AssignProjectDialog({ open, onOpenChange, employee, onSaveSucces
     const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
 
-    const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(employee.projectIds || [])
+    // Extract IDs from projectIds (might be populated objects)
+    const extractProjectIds = (projectIds: any[] | undefined): string[] => {
+        return (projectIds || []).map((pId: any) => {
+            if (typeof pId === 'string') return pId;
+            if (pId && typeof pId === 'object') return pId._id || pId.id;
+            return null;
+        }).filter((id): id is string => !!id);
+    };
+
+    const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(extractProjectIds(employee.projectIds))
 
     useEffect(() => {
         if (open) {
             setError(null)
-            setSelectedProjectIds(employee.projectIds || [])
+            setSelectedProjectIds(extractProjectIds(employee.projectIds))
         }
     }, [open, employee.projectIds])
 

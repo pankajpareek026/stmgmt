@@ -42,11 +42,23 @@ const employeeSchema = new mongoose.Schema({
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Project',
-        required: false
+        required: false,
+        validate: {
+            validator: function (v: any) {
+                return !v || mongoose.Types.ObjectId.isValid(v);
+            },
+            message: 'Invalid projectId'
+        }
     },
     projectIds: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Project'
+        ref: 'Project',
+        validate: {
+            validator: function (v: any) {
+                return mongoose.Types.ObjectId.isValid(v);
+            },
+            message: 'Invalid projectId in projectIds array'
+        }
     }]
 }, {
     timestamps: true,
@@ -65,6 +77,22 @@ const employeeSchema = new mongoose.Schema({
         }
     },
     strictPopulate: false
+});
+
+// Pre-save hook to clean up projectIds
+employeeSchema.pre('save', function (next) {
+    if (this.isModified('projectIds')) {
+        this.projectIds = this.projectIds.filter(id => {
+            if (!id) return false;
+            // If it's a string, check if it's a valid ObjectId string
+            if (typeof id === 'string') {
+                return mongoose.Types.ObjectId.isValid(id) && !id.includes('\n') && !id.includes('{');
+            }
+            // If it's already an ObjectId instance, it's valid
+            return mongoose.Types.ObjectId.isValid(id as any);
+        });
+    }
+    next();
 });
 
 export default mongoose.models.Employee || mongoose.model('Employee', employeeSchema);

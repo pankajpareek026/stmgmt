@@ -11,10 +11,19 @@ export function useApi<T>(endpoint: string) {
         setError(null);
         try {
             const result = await apiService.get(endpoint);
-            if (result.success) {
-                setData(result.data);
+
+            // Check if result has success property (API response format)
+            if (typeof result === 'object' && result !== null && 'success' in result) {
+                const apiResult = result as any;
+                if (apiResult.success) {
+                    setData(apiResult.data);
+                } else {
+                    const errorMsg = apiResult.error || 'Failed to fetch data';
+                    setError(errorMsg);
+                }
             } else {
-                setError(result.error || 'Failed to fetch data');
+                // Fallback: if result doesn't have success property, assume it's the data itself
+                setData(result as T);
             }
         } catch (err: any) {
             setError(err.message || 'An error occurred');

@@ -36,6 +36,7 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { EditProjectDialog } from "@/components/edit-project-dialog"
 import { ManageMembersDialog } from "@/components/manage-members-dialog"
+import { ProcessPayrollDialog } from "@/components/process-payroll-dialog"
 
 const statusColors = {
   active: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -49,6 +50,7 @@ function ProjectDetailContent({ id }: { id: string }) {
   const [showMarkAttendance, setShowMarkAttendance] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showManageMembers, setShowManageMembers] = useState(false)
+  const [showProcessPayroll, setShowProcessPayroll] = useState(false)
 
   const { data: project, loading, error, refresh: refreshProject } = useApi<Project>(`/projects/${id}`)
   const { data: employeesData, refresh: refreshEmployees } = useApi<Employee[]>("/employees")
@@ -99,7 +101,26 @@ function ProjectDetailContent({ id }: { id: string }) {
     return (employeesData || []).find((emp: Employee) => (emp.id || (emp as any)._id) === e)
   }).filter(Boolean) as Employee[]
   const projectExpenses = (expensesData || []).filter((e: Expense) => e.projectId === id)
-  const projectAttendance = (attendanceData || []).filter((a: Attendance) => a.projectId === id)
+
+  // Fix: Handle populated projectId (can be object or string)
+  const projectAttendance = (attendanceData || []).filter((a: Attendance) => {
+    const attProjectId = typeof a.projectId === 'object' && a.projectId !== null
+      ? (a.projectId as any)._id || (a.projectId as any).id
+      : a.projectId;
+    return attProjectId === id;
+  })
+
+  // Helper functions to handle both flat mock data and populated API data
+  const getEmployeeName = (att: any) => {
+    if (att.employeeName) return att.employeeName
+    return att.employeeId?.name || "Unknown Employee"
+  }
+
+  const getProjectName = (att: any) => {
+    if (att.projectName) return att.projectName
+    return att.projectId?.name || "Unknown Project"
+  }
+
   const budgetPercent = project.budget > 0 ? (project.spent / project.budget) * 100 : 0
 
   const totalHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + a.hours, 0)
@@ -145,10 +166,14 @@ function ProjectDetailContent({ id }: { id: string }) {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={() => setShowMarkAttendance(true)}>
             <Users className="h-4 w-4 mr-2" />
             Mark Attendance
+          </Button>
+          <Button variant="outline" onClick={() => setShowProcessPayroll(true)}>
+            <DollarSign className="h-4 w-4 mr-2" />
+            Process Payment
           </Button>
           <Button variant="outline" onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4 mr-2" />
@@ -382,7 +407,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                               className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
                             >
                               <td className="py-3 px-2">
-                                <p className="text-sm font-medium">{record.employeeName}</p>
+                                <p className="text-sm font-medium">{getEmployeeName(record)}</p>
                               </td>
                               <td className="py-3 px-2">
                                 <p className="text-sm text-muted-foreground">
@@ -436,7 +461,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                         <div key={record.id} className="p-4 rounded-lg border border-border bg-card">
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <p className="font-medium text-sm">{record.employeeName}</p>
+                              <p className="font-medium text-sm">{getEmployeeName(record)}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 {new Date(record.date).toLocaleDateString()}
                               </p>
@@ -620,6 +645,16 @@ function ProjectDetailContent({ id }: { id: string }) {
         onSaveSuccess={() => {
           refreshProject()
           refreshEmployees?.()
+        }}
+      />
+
+      {/* Process Payroll Dialog */}
+      <ProcessPayrollDialog
+        open={showProcessPayroll}
+        onOpenChange={setShowProcessPayroll}
+        initialProjectId={id}
+        onSaveSuccess={() => {
+          refreshProject()
         }}
       />
     </div>

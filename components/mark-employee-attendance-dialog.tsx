@@ -158,7 +158,13 @@ export function MarkEmployeeAttendanceDialog({
                             </SelectTrigger>
                             <SelectContent>
                                 {(() => {
-                                    const assignedProjectIds = employee.projectIds || []
+                                    // Extract IDs from projectIds (might be populated objects)
+                                    const assignedProjectIds = (employee.projectIds || []).map((pId: any) => {
+                                        if (typeof pId === 'string') return pId;
+                                        if (pId && typeof pId === 'object') return pId._id || pId.id;
+                                        return null;
+                                    }).filter((id): id is string => !!id);
+
                                     const availableProjects = (projects || []).filter(p =>
                                         assignedProjectIds.includes(p.id) || p.id === currentProjectId
                                     )

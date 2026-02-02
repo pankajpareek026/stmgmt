@@ -39,9 +39,13 @@ export function ManageMembersDialog({
             const currentMembers = employees
                 .filter((e) => {
                     const projectIds = e.projectIds || []
-                    return projectIds.includes(projectId)
+                    return projectIds.some(pId => {
+                        const idStr = typeof pId === 'string' ? pId : (pId as any)?.id || (pId as any)?._id;
+                        return idStr === projectId;
+                    });
                 })
                 .map((e) => e.id || (e as any)._id)
+                .filter(id => typeof id === 'string' && id.length === 24); // Ensure valid looking ID
             setSelectedEmployeeIds(currentMembers)
             setError(null)
         }
@@ -68,10 +72,10 @@ export function ManageMembersDialog({
             // 1. Get current project members
             const projectResponse = await apiService.get<Project>(`/projects/${projectId}`)
             const currentProj = projectResponse
-            const originalMemberIds = (currentProj.employeeIds || []).map(e => typeof e === 'string' ? e : (e as any).id || (e as any)._id)
+            const originalMemberIds = (currentProj.employeeIds || []).map((e: any) => typeof e === 'string' ? e : (e as any).id || (e as any)._id)
 
-            const toAdd = selectedEmployeeIds.filter(id => !originalMemberIds.includes(id))
-            const toRemove = originalMemberIds.filter(id => !selectedEmployeeIds.includes(id))
+            const toAdd = selectedEmployeeIds.filter((id: string) => !originalMemberIds.includes(id))
+            const toRemove = originalMemberIds.filter((id: string) => !selectedEmployeeIds.includes(id))
 
             // 2. Update Employee records
             const employeeUpdatePromises = []
@@ -80,7 +84,14 @@ export function ManageMembersDialog({
             for (const empId of toAdd) {
                 const emp = employees?.find(e => (e.id || (e as any)._id) === empId)
                 if (emp) {
-                    const newProjectIds = Array.from(new Set([...(emp.projectIds || []), projectId]))
+                    // Extract just the IDs from projectIds (they might be populated objects)
+                    const existingProjectIds = (emp.projectIds || []).map((pId: any) => {
+                        if (typeof pId === 'string') return pId;
+                        if (pId && typeof pId === 'object') return pId._id || pId.id;
+                        return null;
+                    }).filter((id): id is string => !!id);
+
+                    const newProjectIds = Array.from(new Set([...existingProjectIds, projectId]))
                     employeeUpdatePromises.push(apiService.put(`/employees/${empId}`, { projectIds: newProjectIds }))
                 }
             }
@@ -89,7 +100,14 @@ export function ManageMembersDialog({
             for (const empId of toRemove) {
                 const emp = employees?.find(e => (e.id || (e as any)._id) === empId)
                 if (emp) {
-                    const newProjectIds = (emp.projectIds || []).filter(pId => pId !== projectId)
+                    // Extract just the IDs from projectIds (they might be populated objects)
+                    const existingProjectIds = (emp.projectIds || []).map((pId: any) => {
+                        if (typeof pId === 'string') return pId;
+                        if (pId && typeof pId === 'object') return pId._id || pId.id;
+                        return null;
+                    }).filter((id): id is string => !!id);
+
+                    const newProjectIds = existingProjectIds.filter(pId => pId !== projectId)
                     employeeUpdatePromises.push(apiService.put(`/employees/${empId}`, { projectIds: newProjectIds }))
                 }
             }
@@ -97,9 +115,11 @@ export function ManageMembersDialog({
             await Promise.all(employeeUpdatePromises)
 
             // 3. Update Project record with the full selected set
+            const validSelectedIds = selectedEmployeeIds.filter(id => typeof id === 'string' && id.length === 24);
+
             await apiService.put(`/projects/${projectId}`, {
-                employeeIds: selectedEmployeeIds,
-                workers: selectedEmployeeIds.length // Keep visual workers count in sync
+                employeeIds: validSelectedIds,
+                workers: validSelectedIds.length // Keep visual workers count in sync
             })
 
             toast.success("Project team updated successfully")

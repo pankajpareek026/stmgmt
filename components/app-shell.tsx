@@ -7,7 +7,7 @@ import { getAuthToken } from '@/lib/api-service';
 import { DesktopSidebar } from '@/components/desktop-sidebar';
 import { MobileNav } from '@/components/mobile-nav';
 
-const PUBLIC_ROUTES = ['/login', '/signup'];
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const router = useRouter();

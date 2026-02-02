@@ -25,6 +25,15 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
     const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
 
+    // Extract IDs from projectIds (might be populated objects)
+    const extractProjectIds = (projectIds: any[] | undefined): string[] => {
+        return (projectIds || []).map((pId: any) => {
+            if (typeof pId === 'string') return pId;
+            if (pId && typeof pId === 'object') return pId._id || pId.id;
+            return null;
+        }).filter((id): id is string => !!id);
+    };
+
     const [formData, setFormData] = useState({
         name: employee.name,
         role: employee.role,
@@ -32,7 +41,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
         email: employee.email,
         dailyRate: employee.dailyRate.toString(),
         status: employee.status,
-        projectIds: employee.projectIds || [],
+        projectIds: extractProjectIds(employee.projectIds),
     })
 
     useEffect(() => {
@@ -46,7 +55,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
                     email: employee.email,
                     dailyRate: employee.dailyRate.toString(),
                     status: employee.status,
-                    projectIds: employee.projectIds || [],
+                    projectIds: extractProjectIds(employee.projectIds),
                 })
             }
         }

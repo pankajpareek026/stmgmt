@@ -231,6 +231,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
   const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceEntry>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   const [temporaryWorkers, setTemporaryWorkers] = useState<TemporaryWorker[]>([])
   const [showAddWorker, setShowAddWorker] = useState(false)
@@ -244,13 +245,23 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
   const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
   const { data: employees, loading: employeesLoading } = useApi<Employee[]>("/employees")
 
-  // Reset error when dialog opens
+  // Reset error and preview when dialog opens
   useEffect(() => {
-    if (open) setError(null)
+    if (open) {
+      setError(null)
+      setShowPreview(false)
+    }
   }, [open])
 
   const projectEmployees = (employees || []).filter((emp: Employee) => {
-    return emp.projectIds?.includes(selectedProject)
+    // Extract IDs from projectIds (might be populated objects)
+    const projectIds = (emp.projectIds || []).map((pId: any) => {
+      if (typeof pId === 'string') return pId;
+      if (pId && typeof pId === 'object') return pId._id || pId.id;
+      return null;
+    }).filter((id): id is string => !!id);
+
+    return projectIds.includes(selectedProject);
   })
   const allWorkers = [...projectEmployees, ...temporaryWorkers]
 
@@ -328,6 +339,22 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
     setAttendanceData(updates)
   }
 
+  const handlePreview = () => {
+    if (!selectedProject) {
+      setError("Please select a project")
+      return
+    }
+
+    const records = Object.values(attendanceData) as AttendanceEntry[]
+    if (records.length === 0) {
+      setError("No attendance data to preview")
+      return
+    }
+
+    setError(null)
+    setShowPreview(true)
+  }
+
   const handleSave = async () => {
     if (!selectedProject) {
       setError("Please select a project")
@@ -380,166 +407,271 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
         )}
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
-          {/* Project and Date Selection */}
-          <div className="grid gap-4 sm:grid-cols-2 mb-6">
-            <div className="space-y-2">
-              <Label>Select Project</Label>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder={projectsLoading ? "Loading projects..." : "Choose a project"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(projects || []).map((project: Project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <DatePicker
-                date={selectedDate ? new Date(selectedDate) : undefined}
-                setDate={(date) => setSelectedDate(date ? date.toISOString().split("T")[0] : "")}
-              />
-            </div>
-          </div>
-
-          {selectedProject ? (
-            <>
-              {/* Bulk Actions */}
-              <div className="flex flex-wrap gap-2 pb-4 border-b mb-4 sticky top-0 bg-background z-10 pt-1">
-                <Button onClick={markAllPresent} variant="outline" size="sm" className="gap-2 bg-transparent">
-                  <Check className="h-4 w-4 text-green-500" />
-                  Mark All Present
-                </Button>
-                <Button onClick={markAllAbsent} variant="outline" size="sm" className="gap-2 bg-transparent">
-                  <X className="h-4 w-4 text-red-500" />
-                  Mark All Absent
-                </Button>
-                <Button
-                  onClick={() => setShowAddWorker(!showAddWorker)}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 bg-transparent"
-                >
-                  <UserPlus className="h-4 w-4 text-primary" />
-                  Add Temporary Worker
-                </Button>
-                <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  {allWorkers.length} Workers
-                  {temporaryWorkers.length > 0 && <span className="text-xs">({temporaryWorkers.length} temp)</span>}
+          {showPreview ? (
+            /* Preview Mode */
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3">Attendance Summary</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Project:</span>
+                    <p className="font-medium">{(projects || []).find(p => p.id === selectedProject)?.name || "Unknown Project"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Date:</span>
+                    <p className="font-medium">{new Date(selectedDate).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Total Workers:</span>
+                    <p className="font-medium">{Object.keys(attendanceData).length}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Present:</span>
+                    <p className="font-medium text-green-600">
+                      {Object.values(attendanceData).filter((a: AttendanceEntry) => a.status === "present").length}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {showAddWorker && (
-                <Card className="bg-muted/50 mb-4">
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                      <UserPlus className="h-4 w-4" />
-                      Add Temporary Worker
-                    </h3>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Name *</Label>
-                        <Input
-                          placeholder="Worker name"
-                          value={newWorker.name}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWorker({ ...newWorker, name: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Role *</Label>
-                        <Select
-                          value={newWorker.role}
-                          onValueChange={(value: string) => setNewWorker({ ...newWorker, role: value })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Helper">Helper</SelectItem>
-                            <SelectItem value="Mason">Mason</SelectItem>
-                            <SelectItem value="Carpenter">Carpenter</SelectItem>
-                            <SelectItem value="Electrician">Electrician</SelectItem>
-                            <SelectItem value="Plumber">Plumber</SelectItem>
-                            <SelectItem value="Painter">Painter</SelectItem>
-                            <SelectItem value="Labor">Labor</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Daily Rate (₹) *</Label>
-                        <Input
-                          type="number"
-                          placeholder="500"
-                          value={newWorker.dailyRate}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWorker({ ...newWorker, dailyRate: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Phone (Optional)</Label>
-                        <Input
-                          type="tel"
-                          placeholder="9876543210"
-                          value={newWorker.phone}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWorker({ ...newWorker, phone: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button onClick={handleAddWorker} size="sm">
-                        Add Worker
-                      </Button>
-                      <Button onClick={() => setShowAddWorker(false)} variant="outline" size="sm">
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground">Attendance Records</h4>
+                {Object.values(attendanceData).map((record: AttendanceEntry) => {
+                  const emp = allWorkers.find(e => e.id === record.employeeId)
+                  if (!emp) return null
 
-              {/* Employee Attendance List */}
-              <div className="space-y-2">
-                {allWorkers.map((employee) => (
-                  <AttendanceRow
-                    key={employee.id}
-                    employee={employee}
-                    attendance={attendanceData[employee.id]}
-                    updateAttendance={updateAttendance}
-                  />
-                ))}
+                  return (
+                    <div key={record.employeeId} className="border rounded-lg p-4 bg-card">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {emp.name.split(" ").map(n => n[0]).join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{emp.name}</p>
+                            <p className="text-sm text-muted-foreground">{emp.role}</p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            record.status === "present" && "bg-green-500/10 text-green-600 border-green-500/20",
+                            record.status === "absent" && "bg-red-500/10 text-red-600 border-red-500/20",
+                            record.status === "half-day" && "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                          )}
+                        >
+                          {record.status}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Check In:</span>
+                          <p className="font-medium">{record.checkIn || "-"}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Check Out:</span>
+                          <p className="font-medium">{record.checkOut || "-"}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Hours:</span>
+                          <p className="font-medium">{record.hours}h</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Payment:</span>
+                          <p className="font-medium capitalize">{record.paymentSplit.replace("-", " ")}</p>
+                        </div>
+                      </div>
+                      {record.workDescription && (
+                        <div className="mt-3 pt-3 border-t">
+                          <span className="text-xs text-muted-foreground">Work Description:</span>
+                          <p className="text-sm mt-1">{record.workDescription}</p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            </>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Select a project to mark attendance</p>
             </div>
+          ) : (
+            /* Form Mode */
+            <>
+              {/* Project and Date Selection */}
+              <div className="grid gap-4 sm:grid-cols-2 mb-6">
+                <div className="space-y-2">
+                  <Label>Select Project</Label>
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={projectsLoading ? "Loading projects..." : "Choose a project"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(projects || []).map((project: Project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <DatePicker
+                    date={selectedDate ? new Date(selectedDate) : undefined}
+                    setDate={(date) => setSelectedDate(date ? date.toISOString().split("T")[0] : "")}
+                  />
+                </div>
+              </div>
+
+              {selectedProject ? (
+                <>
+                  {/* Bulk Actions */}
+                  <div className="flex flex-wrap gap-2 pb-4 border-b mb-4 sticky top-0 bg-background z-10 pt-1">
+                    <Button onClick={markAllPresent} variant="outline" size="sm" className="gap-2 bg-transparent">
+                      <Check className="h-4 w-4 text-green-500" />
+                      Mark All Present
+                    </Button>
+                    <Button onClick={markAllAbsent} variant="outline" size="sm" className="gap-2 bg-transparent">
+                      <X className="h-4 w-4 text-red-500" />
+                      Mark All Absent
+                    </Button>
+                    <Button
+                      onClick={() => setShowAddWorker(!showAddWorker)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 bg-transparent"
+                    >
+                      <UserPlus className="h-4 w-4 text-primary" />
+                      Add Temporary Worker
+                    </Button>
+                    <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      {allWorkers.length} Workers
+                      {temporaryWorkers.length > 0 && <span className="text-xs">({temporaryWorkers.length} temp)</span>}
+                    </div>
+                  </div>
+
+                  {showAddWorker && (
+                    <Card className="bg-muted/50 mb-4">
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                          <UserPlus className="h-4 w-4" />
+                          Add Temporary Worker
+                        </h3>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Name *</Label>
+                            <Input
+                              placeholder="Worker name"
+                              value={newWorker.name}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWorker({ ...newWorker, name: e.target.value })}
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Role *</Label>
+                            <Select
+                              value={newWorker.role}
+                              onValueChange={(value: string) => setNewWorker({ ...newWorker, role: value })}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Helper">Helper</SelectItem>
+                                <SelectItem value="Mason">Mason</SelectItem>
+                                <SelectItem value="Carpenter">Carpenter</SelectItem>
+                                <SelectItem value="Electrician">Electrician</SelectItem>
+                                <SelectItem value="Plumber">Plumber</SelectItem>
+                                <SelectItem value="Painter">Painter</SelectItem>
+                                <SelectItem value="Labor">Labor</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Daily Rate (₹) *</Label>
+                            <Input
+                              type="number"
+                              placeholder="500"
+                              value={newWorker.dailyRate}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWorker({ ...newWorker, dailyRate: e.target.value })}
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Phone (Optional)</Label>
+                            <Input
+                              type="tel"
+                              placeholder="9876543210"
+                              value={newWorker.phone}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWorker({ ...newWorker, phone: e.target.value })}
+                              className="h-9"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button onClick={handleAddWorker} size="sm">
+                            Add Worker
+                          </Button>
+                          <Button onClick={() => setShowAddWorker(false)} variant="outline" size="sm">
+                            Cancel
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Employee Attendance List */}
+                  <div className="space-y-2">
+                    {allWorkers.map((employee) => (
+                      <AttendanceRow
+                        key={employee.id}
+                        employee={employee}
+                        attendance={attendanceData[employee.id]}
+                        updateAttendance={updateAttendance}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Select a project to mark attendance</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer Area */}
         <div className="p-6 pt-2 border-t shrink-0 flex justify-end gap-2 bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Attendance"
-            )}
-          </Button>
+          {showPreview ? (
+            <>
+              <Button variant="outline" onClick={() => setShowPreview(false)} disabled={isSaving}>
+                Back to Edit
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Confirm & Submit"
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handlePreview} disabled={isSaving || !selectedProject || Object.keys(attendanceData).length === 0}>
+                Preview Attendance
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
