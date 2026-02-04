@@ -240,7 +240,7 @@ function ProjectDetailContent({ id }: { id: string }) {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -264,20 +264,6 @@ function ProjectDetailContent({ id }: { id: string }) {
               <div>
                 <p className="text-sm text-muted-foreground">Budget</p>
                 <p className="text-2xl font-bold">{formatCompact(project.budget)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-amber-500/10">
-                <DollarSign className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Expenses</p>
-                <p className="text-2xl font-bold text-amber-600">{formatCompact(totalSpend)}</p>
               </div>
             </div>
           </CardContent>
