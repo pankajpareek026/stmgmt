@@ -13,6 +13,7 @@ import { Project } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
+import { useCurrency } from "@/components/currency-provider"
 
 interface AddEmployeeDialogProps {
     open: boolean
@@ -21,6 +22,7 @@ interface AddEmployeeDialogProps {
 }
 
 export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmployeeDialogProps) {
+    const { currency } = useCurrency()
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
@@ -126,7 +128,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="dailyRate">Daily Rate (₹) *</Label>
+                            <Label htmlFor="dailyRate">Daily Rate ({currency.symbol}) *</Label>
                             <Input
                                 id="dailyRate"
                                 type="number"

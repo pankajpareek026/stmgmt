@@ -40,6 +40,8 @@ export interface Attendance {
   hours: number
   status: "present" | "absent" | "half-day" | "overtime"
   overtime: number
+  description?: string
+  notes?: string
 }
 
 export interface Payroll {

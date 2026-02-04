@@ -127,7 +127,9 @@ function ProjectDetailContent({ id }: { id: string }) {
 
   const formatDayCount = (value: number) => (Number.isInteger(value) ? `${value}` : value.toFixed(1))
 
-  const budgetPercent = project.budget > 0 ? (project.spent / project.budget) * 100 : 0
+  // Use the calculated spent value from API (sum of approved expenses)
+  const totalSpend = project.spent || 0
+  const budgetPercent = project.budget > 0 ? (totalSpend / project.budget) * 100 : 0
 
   const totalHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + a.hours, 0)
   const totalOvertimeHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + a.overtime, 0)
@@ -238,7 +240,7 @@ function ProjectDetailContent({ id }: { id: string }) {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -270,11 +272,25 @@ function ProjectDetailContent({ id }: { id: string }) {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-amber-500/10">
+                <DollarSign className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Expenses</p>
+                <p className="text-2xl font-bold text-amber-600">{formatCompact(totalSpend)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-green-500/10">
                 <DollarSign className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Spent</p>
+                <p className="text-sm text-muted-foreground">Payroll Paid</p>
                 <p className="text-2xl font-bold text-green-600">{formatCompact(projectTotalPaid)}</p>
               </div>
             </div>
@@ -302,7 +318,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                 <DollarSign className="h-5 w-5 text-orange-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Pending</p>
+                <p className="text-sm text-muted-foreground">Payroll Pending</p>
                 <p className="text-2xl font-bold text-orange-600">{formatCompact(projectTotalPending)}</p>
               </div>
             </div>
@@ -344,7 +360,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Budget Progress</span>
                   <span className="text-sm font-semibold">
-                    {formatCompact(project.spent)} / {formatCompact(project.budget)}
+                    {formatCompact(totalSpend)} / {formatCompact(project.budget)}
                   </span>
                 </div>
                 <Progress

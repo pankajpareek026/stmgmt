@@ -7,48 +7,49 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
-import { Employee, Project } from "@/lib/mock-data"
+import { Attendance } from "@/lib/mock-data"
 import { toast } from "sonner"
-import { useApi } from "@/hooks/use-api"
-import { DatePicker } from "@/components/ui/date-picker"
 
-interface MarkEmployeeAttendanceDialogProps {
+interface EditAttendanceDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    employee: Employee
-    currentProjectId?: string | null
+    attendance: Attendance | null
     onSaveSuccess?: () => void
 }
 
-export function MarkEmployeeAttendanceDialog({
+export function EditAttendanceDialog({
     open,
     onOpenChange,
-    employee,
-    currentProjectId,
+    attendance,
     onSaveSuccess
-}: MarkEmployeeAttendanceDialogProps) {
+}: EditAttendanceDialogProps) {
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const { data: projects } = useApi<Project[]>("/projects")
 
-    const [selectedDates, setSelectedDates] = useState<Date[]>([new Date()])
     const [formData, setFormData] = useState({
-        projectId: currentProjectId || "",
         status: "present",
         checkIn: "08:00",
         checkOut: "17:00",
         overtime: "0",
+        hours: "8",
         description: ""
     })
 
-    // Update projectId if currentProject changes and we haven't selected one yet
+    // Update form data when attendance changes
     useEffect(() => {
-        if (currentProjectId && !formData.projectId) {
-            setFormData(prev => ({ ...prev, projectId: currentProjectId }))
+        if (attendance) {
+            setFormData({
+                status: attendance.status || "present",
+                checkIn: attendance.checkIn || "08:00",
+                checkOut: attendance.checkOut || "17:00",
+                overtime: String(attendance.overtime || 0),
+                hours: String(attendance.hours || 8),
+                description: (attendance as any).description || ""
+            })
         }
-    }, [currentProjectId])
+    }, [attendance])
 
     // Reset error when dialog opens
     useEffect(() => {
@@ -59,66 +60,55 @@ export function MarkEmployeeAttendanceDialog({
         e.preventDefault()
         setError(null)
 
-        if (!formData.projectId) {
-            setError("Please select a project")
+        if (!attendance?.id) {
+            setError("Invalid attendance record")
             return
-        }
-
-        if (selectedDates.length === 0) {
-            setError("Please select at least one date")
-            return
-        }
-
-        if (selectedDates.length > 31) {
-            if (!confirm(`You are about to mark attendance for ${selectedDates.length} days. Continue?`)) {
-                return
-            }
         }
 
         setIsSaving(true)
         try {
-            const promises = []
-
-            // Loop through each selected date
-            for (const date of selectedDates) {
-                const dateStr = date.toISOString().split('T')[0]
-
-                const project = (projects || []).find(p => p.id === formData.projectId)
-                const record = {
-                    employeeId: employee.id,
-                    employeeName: employee.name,
-                    projectId: formData.projectId,
-                    projectName: project?.name || "Unknown Project",
-                    date: dateStr,
-                    status: formData.status,
-                    checkIn: formData.status === 'absent' ? '' : formData.checkIn,
-                    checkOut: formData.status === 'absent' ? '' : formData.checkOut,
-                    hours: formData.status === 'half-day' ? 4 : (formData.status === 'absent' ? 0 : 8),
-                    overtime: Number(formData.overtime),
-                    description: formData.description || ""
-                }
-
-                promises.push(apiService.post("/attendance", { records: [record] }))
+            const updateData = {
+                status: formData.status,
+                checkIn: formData.status === 'absent' ? '' : formData.checkIn,
+                checkOut: formData.status === 'absent' ? '' : formData.checkOut,
+                hours: formData.status === 'half-day' ? 4 : (formData.status === 'absent' ? 0 : Number(formData.hours)),
+                overtime: Number(formData.overtime),
+                description: formData.description
             }
 
-            await Promise.all(promises)
-
-            toast.success(`Attendance marked for ${selectedDates.length} days`)
+            await apiService.put(`/attendance/${attendance.id}`, updateData)
+            toast.success("Attendance updated successfully")
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to mark attendance")
+            setError(err instanceof Error ? err.message : "Failed to update attendance")
             console.error(err)
         } finally {
             setIsSaving(false)
         }
     }
 
+    // Helper to get employee name
+    const getEmployeeName = () => {
+        if (!attendance) return "Unknown"
+        if ((attendance as any).employeeName) return (attendance as any).employeeName
+        return (attendance.employeeId as any)?.name || "Unknown Employee"
+    }
+
+    // Helper to get project name
+    const getProjectName = () => {
+        if (!attendance) return "Unknown"
+        if ((attendance as any).projectName) return (attendance as any).projectName
+        return (attendance.projectId as any)?.name || "Unknown Project"
+    }
+
+    if (!attendance) return null
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Mark Attendance</DialogTitle>
+                    <DialogTitle>Edit Attendance</DialogTitle>
                 </DialogHeader>
                 {error && (
                     <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 mb-2">
@@ -131,62 +121,32 @@ export function MarkEmployeeAttendanceDialog({
                     <div className="space-y-2">
                         <Label>Employee</Label>
                         <div className="p-2 bg-muted rounded border text-sm font-medium">
-                            {employee.name}
+                            {getEmployeeName()}
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Select Dates</Label>
-                        <DatePicker
-                            mode="multiple"
-                            dates={selectedDates}
-                            setDates={setSelectedDates as any}
-                            placeholder="Click to select dates"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            {selectedDates.length > 0
-                                ? `Selected: ${selectedDates.map(d => d.getDate()).join(', ')}`
-                                : 'No dates selected'}
-                        </p>
+                        <Label>Project</Label>
+                        <div className="p-2 bg-muted rounded border text-sm font-medium">
+                            {getProjectName()}
+                        </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="project">Project *</Label>
-                        <Select
-                            value={formData.projectId}
-                            onValueChange={(value) => setFormData({ ...formData, projectId: value })}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select project" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(() => {
-                                    // Extract IDs from projectIds (might be populated objects)
-                                    const assignedProjectIds = (employee.projectIds || []).map((pId: any) => {
-                                        if (typeof pId === 'string') return pId;
-                                        if (pId && typeof pId === 'object') return pId._id || pId.id;
-                                        return null;
-                                    }).filter((id): id is string => !!id);
-
-                                    const availableProjects = (projects || []).filter(p =>
-                                        assignedProjectIds.includes(p.id) || p.id === currentProjectId
-                                    )
-
-                                    if (availableProjects.length === 0) {
-                                        return <SelectItem value="none" disabled>No projects assigned</SelectItem>
-                                    }
-
-                                    return availableProjects.map((p: Project) => (
-                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                    ))
-                                })()}
-                            </SelectContent>
-                        </Select>
+                        <Label>Date</Label>
+                        <div className="p-2 bg-muted rounded border text-sm font-medium">
+                            {new Date(attendance.date).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="status">Status</Label>
+                            <Label htmlFor="status">Status *</Label>
                             <Select
                                 value={formData.status}
                                 onValueChange={(value) => setFormData({ ...formData, status: value })}
@@ -198,6 +158,7 @@ export function MarkEmployeeAttendanceDialog({
                                     <SelectItem value="present">Present</SelectItem>
                                     <SelectItem value="half-day">Half Day</SelectItem>
                                     <SelectItem value="absent">Absent</SelectItem>
+                                    <SelectItem value="overtime">Overtime</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -207,6 +168,7 @@ export function MarkEmployeeAttendanceDialog({
                                 id="overtime"
                                 type="number"
                                 min="0"
+                                step="0.5"
                                 value={formData.overtime}
                                 onChange={(e) => setFormData({ ...formData, overtime: e.target.value })}
                             />
@@ -236,22 +198,49 @@ export function MarkEmployeeAttendanceDialog({
                         </div>
                     )}
 
+                    {formData.status === 'present' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="hours">Work Hours</Label>
+                            <Input
+                                id="hours"
+                                type="number"
+                                min="0"
+                                max="24"
+                                step="0.5"
+                                value={formData.hours}
+                                onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
+                            />
+                        </div>
+                    )}
+
                     <div className="space-y-2">
-                        <Label htmlFor="description">Work Description (Optional)</Label>
+                        <Label htmlFor="description">Work Description</Label>
                         <Textarea
                             id="description"
-                            placeholder="Describe the work done today..."
+                            placeholder="Describe the work done on this day..."
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            rows={3}
+                            rows={4}
                             className="resize-none"
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Add details about tasks completed, site conditions, or any relevant notes.
+                        </p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                        </Button>
                         <Button type="submit" disabled={isSaving}>
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Marks"}
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save Changes"
+                            )}
                         </Button>
                     </div>
                 </form>

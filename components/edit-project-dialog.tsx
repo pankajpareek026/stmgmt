@@ -12,6 +12,7 @@ import { apiService } from "@/lib/api-service"
 import { Project } from "@/lib/mock-data"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
+import { useCurrency } from "@/components/currency-provider"
 
 interface EditProjectDialogProps {
     open: boolean

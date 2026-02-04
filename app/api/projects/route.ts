@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db/connect';
 import Project from '@/lib/models/Project';
+import Payroll from '@/lib/models/Payroll';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -8,10 +9,40 @@ export async function GET(request: NextRequest) {
 
         const projects = await Project.find();
 
+        // Calculate total spend for each project from employee payments
+        const projectsWithSpend = await Promise.all(
+            projects.map(async (project) => {
+                const projectObj = project.toObject();
+
+                // Get all payroll records and sum payments for this project
+                const payrolls = await Payroll.find({
+                    'payments.projectId': project._id
+                });
+
+                // Sum up all payments that match this projectId
+                const totalSpend = payrolls.reduce((projectTotal, payroll) => {
+                    const projectPayments = payroll.payments.filter(
+                        (payment: any) => payment.projectId && payment.projectId.toString() === project._id.toString()
+                    );
+                    const payrollProjectTotal = projectPayments.reduce(
+                        (sum: number, payment: any) => sum + (payment.amount || 0),
+                        0
+                    );
+                    return projectTotal + payrollProjectTotal;
+                }, 0);
+
+                return {
+                    ...projectObj,
+                    spent: totalSpend,
+                    totalSpend: totalSpend
+                };
+            })
+        );
+
         return NextResponse.json({
             success: true,
-            count: projects.length,
-            data: projects
+            count: projectsWithSpend.length,
+            data: projectsWithSpend
         });
     } catch (error) {
         console.error('Error fetching projects:', error);

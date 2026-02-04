@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db/connect';
 import Project from '@/lib/models/Project';
+import Payroll from '@/lib/models/Payroll';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -22,9 +23,32 @@ export async function GET(
             );
         }
 
+        // Calculate total spend from employee payments for this project
+        const payrolls = await Payroll.find({
+            'payments.projectId': id
+        });
+
+        // Sum up all payments that match this projectId
+        const totalSpend = payrolls.reduce((projectTotal, payroll) => {
+            const projectPayments = payroll.payments.filter(
+                (payment: any) => payment.projectId && payment.projectId.toString() === id
+            );
+            const payrollProjectTotal = projectPayments.reduce(
+                (sum: number, payment: any) => sum + (payment.amount || 0),
+                0
+            );
+            return projectTotal + payrollProjectTotal;
+        }, 0);
+
+        const projectObj = project.toObject();
+
         return NextResponse.json({
             success: true,
-            data: project
+            data: {
+                ...projectObj,
+                spent: totalSpend,
+                totalSpend: totalSpend
+            }
         });
     } catch (error) {
         console.error('Error fetching project:', error);

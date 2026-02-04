@@ -6,6 +6,7 @@ export interface IUser extends Document {
     password: string;
     name: string;
     role: 'admin' | 'manager' | 'user';
+    currency?: string;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(password: string): Promise<boolean>;
@@ -34,6 +35,11 @@ const userSchema = new Schema<IUser>(
             type: String,
             enum: ['admin', 'manager', 'user'],
             default: 'user',
+        },
+        currency: {
+            type: String,
+            enum: ['INR', 'USD', 'EUR', 'GBP'],
+            default: 'INR',
         },
     },
     {

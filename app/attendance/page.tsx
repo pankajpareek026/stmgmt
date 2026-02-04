@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { Plus, Search, CalendarIcon, Download, Loader2, LayoutDashboard, List } from "lucide-react"
+import { Plus, Search, CalendarIcon, Download, Loader2, LayoutDashboard, List, Edit } from "lucide-react"
 import { AttendanceCalendar } from "@/components/attendance-calendar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,16 +14,24 @@ import { useApi } from "@/hooks/use-api"
 import { Project, Attendance } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { MarkAttendanceDialog } from "@/components/mark-attendance-dialog"
+import { EditAttendanceDialog } from "@/components/edit-attendance-dialog"
 
 function AttendanceContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [projectFilter, setProjectFilter] = useState<string>("all")
   const [showMarkAttendance, setShowMarkAttendance] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
 
   const { data: attendanceData, loading: attendanceLoading, error: attendanceError, refresh: refreshAttendance } = useApi<Attendance[]>("/attendance")
   const { data: projectsData, loading: projectsLoading } = useApi<Project[]>("/projects")
+
+  const handleEditAttendance = (attendance: Attendance) => {
+    setSelectedAttendance(attendance)
+    setShowEditDialog(true)
+  }
 
   if (attendanceLoading || projectsLoading) {
     return (
@@ -240,6 +248,7 @@ function AttendanceContent() {
                     <TableHead>Check Out</TableHead>
                     <TableHead>Hours</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -276,12 +285,22 @@ function AttendanceContent() {
                               {attendance.status}
                             </Badge>
                           </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleEditAttendance(attendance)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       )
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground">
                         No attendance records found
                       </TableCell>
                     </TableRow>
@@ -314,9 +333,19 @@ function AttendanceContent() {
                             <p className="text-xs text-muted-foreground">{getProjectName(attendance)}</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
-                          {attendance.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={cn(statusColors[attendance.status as keyof typeof statusColors])}>
+                            {attendance.status}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditAttendance(attendance)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 text-sm">
@@ -340,6 +369,12 @@ function AttendanceContent() {
                           <p className="font-medium">{attendance.checkOut}</p>
                         </div>
                       </div>
+                      {(attendance as any).description && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-muted-foreground mb-1">Work Description:</p>
+                          <p className="text-sm">{(attendance as any).description}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )
@@ -358,6 +393,15 @@ function AttendanceContent() {
       <MarkAttendanceDialog
         open={showMarkAttendance}
         onOpenChange={setShowMarkAttendance}
+        onSaveSuccess={() => {
+          refreshAttendance()
+        }}
+      />
+
+      <EditAttendanceDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        attendance={selectedAttendance}
         onSaveSuccess={() => {
           refreshAttendance()
         }}

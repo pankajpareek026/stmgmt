@@ -17,6 +17,7 @@ import { Project, Employee } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { DatePicker } from "@/components/ui/date-picker"
+import { useCurrency } from "@/components/currency-provider"
 
 interface MarkAttendanceDialogProps {
   open: boolean
@@ -83,7 +84,7 @@ const AttendanceRow = ({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="truncate">{employee.role}</span>
                 <span className="w-px h-3 bg-border" />
-                <span className="shrink-0">₹{employee.dailyRate}/d</span>
+                <span className="shrink-0">{formatCurrency(employee.dailyRate)} / d</span>
               </div>
             </div>
           </div>
@@ -226,6 +227,7 @@ const AttendanceRow = ({
 }
 
 export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSuccess }: MarkAttendanceDialogProps) {
+  const { currency, formatCurrency } = useCurrency()
   const [selectedProject, setSelectedProject] = useState(projectId || "")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceEntry>>({})
@@ -369,7 +371,8 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
         employeeName: emp?.name || "Unknown Worker",
         projectId: selectedProject,
         projectName: project?.name || "Unknown Project",
-        date: selectedDate
+        date: selectedDate,
+        description: record.workDescription || ""
       }
     })
 
@@ -590,7 +593,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-xs">Daily Rate (₹) *</Label>
+                            <Label className="text-xs">Daily Rate ({currency.symbol}) *</Label>
                             <Input
                               type="number"
                               placeholder="500"

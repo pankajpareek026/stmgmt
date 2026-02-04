@@ -12,6 +12,7 @@ import { Project, Employee } from "@/lib/mock-data"
 import { useApi } from "@/hooks/use-api"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useCurrency } from "@/components/currency-provider"
 
 interface EditEmployeeDialogProps {
     open: boolean
@@ -21,6 +22,7 @@ interface EditEmployeeDialogProps {
 }
 
 export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess }: EditEmployeeDialogProps) {
+    const { currency } = useCurrency()
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { data: projects, loading: projectsLoading } = useApi<Project[]>("/projects")
@@ -149,7 +151,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee, onSaveSuccess
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-dailyRate">Daily Rate (₹) *</Label>
+                            <Label htmlFor="edit-dailyRate">Daily Rate ({currency.symbol}) *</Label>
                             <Input
                                 id="edit-dailyRate"
                                 type="number"
