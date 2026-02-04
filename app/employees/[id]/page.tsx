@@ -407,6 +407,168 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             <AttendanceCalendar records={enrichedAttendance} />
           </div>
 
+          {/* Attendance Records Table */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Attendance Records</CardTitle>
+                <Badge variant="outline" className="text-xs">
+                  {employeeAttendance.length} total records
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {employeeAttendance.length > 0 ? (
+                <>
+                  {/* Desktop View - Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Date</th>
+                          <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Project</th>
+                          <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Check In</th>
+                          <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Check Out</th>
+                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Hours</th>
+                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Overtime</th>
+                          <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {enrichedAttendance.map((record: any) => (
+                          <tr
+                            key={record.id}
+                            className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
+                          >
+                            <td className="py-3 px-2">
+                              <p className="text-sm font-medium">
+                                {new Date(record.date).toLocaleDateString()}
+                              </p>
+                            </td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold text-white"
+                                  style={{ backgroundColor: record.projectColor }}
+                                >
+                                  {record.projectInitials}
+                                </div>
+                                <p className="text-sm font-medium truncate max-w-[200px]">
+                                  {record.projectName}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2">
+                              <p className="text-sm">{record.checkIn}</p>
+                            </td>
+                            <td className="py-3 px-2">
+                              <p className="text-sm">{record.checkOut}</p>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <p className="text-sm font-medium">{record.hours}h</p>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <p
+                                className={cn(
+                                  "text-sm font-medium",
+                                  record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
+                                )}
+                              >
+                                {record.overtime > 0 ? `+${record.overtime}h` : "-"}
+                              </p>
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs",
+                                  record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
+                                  record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
+                                  record.status === "half-day" && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+                                  record.status === "overtime" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                                )}
+                              >
+                                {record.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile View - Cards */}
+                  <div className="md:hidden space-y-3">
+                    {enrichedAttendance.map((record: any) => (
+                      <div key={record.id} className="p-4 rounded-lg border border-border bg-card">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-10 h-10 rounded flex items-center justify-center text-xs font-bold text-white"
+                              style={{ backgroundColor: record.projectColor }}
+                            >
+                              {record.projectInitials}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">
+                                {new Date(record.date).toLocaleDateString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {record.projectName}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
+                              record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
+                              record.status === "half-day" && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+                              record.status === "overtime" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                            )}
+                          >
+                            {record.status}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Check In</p>
+                            <p className="font-medium">{record.checkIn}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Check Out</p>
+                            <p className="font-medium">{record.checkOut}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Hours Worked</p>
+                            <p className="font-semibold">{record.hours}h</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Overtime</p>
+                            <p
+                              className={cn(
+                                "font-semibold",
+                                record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
+                              )}
+                            >
+                              {record.overtime > 0 ? `+${record.overtime}h` : "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No attendance records found</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Payroll History */}
           <Card>
             <CardHeader>

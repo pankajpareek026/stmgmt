@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react"
 import { apiService } from "@/lib/api-service"
-import { Employee, Project } from "@/lib/mock-data"
+import { Employee, Project, Attendance } from "@/lib/mock-data"
 import { toast } from "sonner"
 import { useApi } from "@/hooks/use-api"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -32,6 +32,7 @@ export function MarkEmployeeAttendanceDialog({
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { data: projects } = useApi<Project[]>("/projects")
+    const { data: attendanceData } = useApi<Attendance[]>("/attendance")
 
     const [selectedDates, setSelectedDates] = useState<Date[]>([new Date()])
     const [formData, setFormData] = useState({
@@ -42,6 +43,32 @@ export function MarkEmployeeAttendanceDialog({
         overtime: "0",
         description: ""
     })
+
+    // Calculate disabled dates based on existing attendance for selected project
+    const disabledDates = useMemo(() => {
+        if (!attendanceData || !formData.projectId || !employee.id) return []
+
+        const existingDates: Date[] = []
+
+        attendanceData.forEach((att: any) => {
+            // Get employee ID from attendance record
+            const attEmpId = typeof att.employeeId === 'string'
+                ? att.employeeId
+                : (att.employeeId?._id || att.employeeId?.id)
+
+            // Get project ID from attendance record
+            const attProjId = typeof att.projectId === 'string'
+                ? att.projectId
+                : (att.projectId?._id || att.projectId?.id)
+
+            // Check if this attendance record matches our employee and selected project
+            if (attEmpId === employee.id && attProjId === formData.projectId) {
+                existingDates.push(new Date(att.date))
+            }
+        })
+
+        return existingDates
+    }, [attendanceData, formData.projectId, employee.id])
 
     // Update projectId if currentProject changes and we haven't selected one yet
     useEffect(() => {
@@ -142,12 +169,18 @@ export function MarkEmployeeAttendanceDialog({
                             dates={selectedDates}
                             setDates={setSelectedDates as any}
                             placeholder="Click to select dates"
+                            disabledDates={disabledDates}
                         />
                         <p className="text-[10px] text-muted-foreground">
                             {selectedDates.length > 0
                                 ? `Selected: ${selectedDates.map(d => d.getDate()).join(', ')}`
                                 : 'No dates selected'}
                         </p>
+                        {disabledDates.length > 0 && (
+                            <p className="text-[10px] text-amber-600">
+                                ⓘ Dates with existing attendance are disabled
+                            </p>
+                        )}
                     </div>
 
                     <div className="space-y-2">

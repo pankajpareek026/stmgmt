@@ -22,10 +22,24 @@ interface DatePickerProps {
     label?: string
     placeholder?: string
     className?: string
+    disabledDates?: Date[]
 }
 
-export function DatePicker({ date, setDate, dates, setDates, mode = "single", label, placeholder = "Pick a date", className }: DatePickerProps) {
+export function DatePicker({ date, setDate, dates, setDates, mode = "single", label, placeholder = "Pick a date", className, disabledDates = [] }: DatePickerProps) {
     const isMultiple = mode === "multiple"
+
+    // Create a function to check if a date should be disabled
+    const isDateDisabled = (checkDate: Date) => {
+        if (!disabledDates || disabledDates.length === 0) return false
+
+        return disabledDates.some(disabledDate => {
+            const d1 = new Date(checkDate)
+            const d2 = new Date(disabledDate)
+            d1.setHours(0, 0, 0, 0)
+            d2.setHours(0, 0, 0, 0)
+            return d1.getTime() === d2.getTime()
+        })
+    }
 
     return (
         <div className={cn("grid gap-2", className)}>
@@ -56,6 +70,7 @@ export function DatePicker({ date, setDate, dates, setDates, mode = "single", la
                         mode={mode as any}
                         selected={(isMultiple ? dates : date) as any}
                         onSelect={(isMultiple ? setDates : setDate) as any}
+                        disabled={isDateDisabled}
                         initialFocus
                     />
                 </PopoverContent>
