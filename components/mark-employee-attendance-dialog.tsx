@@ -138,6 +138,16 @@ export function MarkEmployeeAttendanceDialog({
 
             toast.success(`Attendance marked for ${selectedDates.length} days`)
             onSaveSuccess?.()
+            setSelectedDates([new Date()])
+            setFormData({
+                projectId: currentProjectId || "",
+                status: "present",
+                checkIn: "08:00",
+                checkOut: "17:00",
+                overtime: "0",
+                description: ""
+            })
+            setError(null)
             onOpenChange(false)
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to mark attendance")
