@@ -22,11 +22,13 @@ import {
   X,
   FolderKanban,
   Loader2,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useApi } from "@/hooks/use-api"
 import { Project, Employee, Expense, Attendance } from "@/lib/mock-data"
@@ -54,6 +56,14 @@ function ProjectDetailContent({ id }: { id: string }) {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showManageMembers, setShowManageMembers] = useState(false)
   const [showProcessPayroll, setShowProcessPayroll] = useState(false)
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false)
+  const [isExpensesOpen, setIsExpensesOpen] = useState(false)
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false)
+  const [isPaymentTrackingOpen, setIsPaymentTrackingOpen] = useState(false)
+  const [isProjectManagerOpen, setIsProjectManagerOpen] = useState(false)
+  const [isTeamMembersOpen, setIsTeamMembersOpen] = useState(false)
+  const [isAttendanceSummaryOpen, setIsAttendanceSummaryOpen] = useState(false)
+  const [isKeyMetricsOpen, setIsKeyMetricsOpen] = useState(true)
 
   const { data: project, loading, error, refresh: refreshProject } = useApi<Project>(`/projects/${id}`)
   const { data: employeesData, refresh: refreshEmployees } = useApi<Employee[]>("/employees")
@@ -99,11 +109,13 @@ function ProjectDetailContent({ id }: { id: string }) {
     )
   }
 
-  const projectEmployees = (project.employeeIds || []).map((e: any) => {
-    // If e is an object (populated), return it. If it's a string, find it in employeesData.
-    if (typeof e === 'object' && e !== null) return e as Employee
-    return (employeesData || []).find((emp: Employee) => (emp.id || (emp as any)._id) === e)
-  }).filter(Boolean) as Employee[]
+  const projectEmployees = (project.employeeIds || [])
+    .map((e: any) => {
+      // If e is an object (populated), return it. If it's a string, find it in employeesData.
+      if (typeof e === 'object' && e !== null) return e as Employee
+      return (employeesData || []).find((emp: Employee) => (emp.id || (emp as any)._id) === e)
+    })
+    .filter((e): e is Employee => e !== null && e !== undefined) as Employee[]
   const projectExpenses = (expensesData || []).filter((e: Expense) => e.projectId === id)
 
   // Fix: Handle populated projectId (can be object or string)
@@ -146,7 +158,9 @@ function ProjectDetailContent({ id }: { id: string }) {
 
   // Calculate total project payments and earnings
   const projectTotalEarned = projectEmployees.reduce((sum, emp) => {
+    if (!emp) return sum;
     const empId = emp.id || (emp as any)._id;
+    if (!empId) return sum;
     const empAtt = projectAttendance.filter((att: any) => {
       const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
         ? (att.employeeId as any)._id || (att.employeeId as any).id
@@ -162,7 +176,9 @@ function ProjectDetailContent({ id }: { id: string }) {
   }, 0);
 
   const projectTotalPaid = projectEmployees.reduce((sum, emp) => {
+    if (!emp) return sum;
     const empId = emp.id || (emp as any)._id;
+    if (!empId) return sum;
     let paid = 0;
     if (payrollData && payrollData.length > 0) {
       payrollData.forEach((p: any) => {
@@ -240,398 +256,673 @@ function ProjectDetailContent({ id }: { id: string }) {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <Collapsible open={isKeyMetricsOpen} onOpenChange={setIsKeyMetricsOpen}>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Completion</p>
-                <p className="text-2xl font-bold">{project.completion}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+              <CardTitle>Key Metrics</CardTitle>
+              <ChevronDown className={cn(
+                "h-5 w-5 transition-transform duration-200",
+                isKeyMetricsOpen ? "transform rotate-180" : ""
+              )} />
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Completion</p>
+                        <p className="text-2xl font-bold">{project.completion}%</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-blue-500/10">
-                <DollarSign className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Budget</p>
-                <p className="text-2xl font-bold">{formatCompact(project.budget)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-blue-500/10">
+                        <DollarSign className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Budget</p>
+                        <p className="text-2xl font-bold">{formatCompact(project.budget)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-green-500/10">
-                <DollarSign className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Payroll Paid</p>
-                <p className="text-2xl font-bold text-green-600">{formatCompact(projectTotalPaid)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-green-500/10">
+                        <DollarSign className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Payroll Paid</p>
+                        <p className="text-2xl font-bold text-green-600">{formatCompact(projectTotalPaid)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-purple-500/10">
-                <Users className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Team Size</p>
-                <p className="text-2xl font-bold">{projectEmployees.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-purple-500/10">
+                        <Users className="h-5 w-5 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Team Size</p>
+                        <p className="text-2xl font-bold">{projectEmployees.length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-orange-500/10">
-                <DollarSign className="h-5 w-5 text-orange-500" />
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-orange-500/10">
+                        <DollarSign className="h-5 w-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Payroll Pending</p>
+                        <p className="text-2xl font-bold text-orange-600">{formatCompact(projectTotalPending)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Payroll Pending</p>
-                <p className="text-2xl font-bold text-orange-600">{formatCompact(projectTotalPending)}</p>
-              </div>
-            </div>
-          </CardContent>
+            </CardContent>
+          </CollapsibleContent>
         </Card>
-      </div>
+      </Collapsible>
 
       {/* Project Details */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {/* Timeline & Budget */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Project Timeline</span>
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(project.startDate).toLocaleDateString()} -{" "}
-                    {new Date(project.endDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    Duration:{" "}
-                    {Math.ceil(
-                      (new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) /
-                      (1000 * 60 * 60 * 24),
-                    )}{" "}
-                    days
-                  </span>
-                </div>
-              </div>
+          <Collapsible open={isOverviewOpen} onOpenChange={setIsOverviewOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Project Overview</CardTitle>
+                  <ChevronDown className={cn(
+                    "h-5 w-5 transition-transform duration-200",
+                    isOverviewOpen ? "transform rotate-180" : ""
+                  )} />
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Project Timeline</span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(project.startDate).toLocaleDateString()} -{" "}
+                        {new Date(project.endDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        Duration:{" "}
+                        {Math.ceil(
+                          (new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) /
+                          (1000 * 60 * 60 * 24),
+                        )}{" "}
+                        days
+                      </span>
+                    </div>
+                  </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Budget Progress</span>
-                  <span className="text-sm font-semibold">
-                    {formatCompact(totalSpend)} / {formatCompact(project.budget)}
-                  </span>
-                </div>
-                <Progress
-                  value={budgetPercent}
-                  className={cn(
-                    "h-2",
-                    budgetPercent > 90 && "[&>div]:bg-red-500",
-                    budgetPercent > 75 && budgetPercent <= 90 && "[&>div]:bg-yellow-500",
-                  )}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {budgetPercent > 90 && "Warning: Budget utilization is high"}
-                  {budgetPercent > 75 && budgetPercent <= 90 && "Caution: Approaching budget limit"}
-                  {budgetPercent <= 75 && `${(100 - budgetPercent).toFixed(0)}% budget remaining`}
-                </p>
-              </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Budget Progress</span>
+                      <span className="text-sm font-semibold">
+                        {formatCompact(totalSpend)} / {formatCompact(project.budget)}
+                      </span>
+                    </div>
+                    <Progress
+                      value={budgetPercent}
+                      className={cn(
+                        "h-2",
+                        budgetPercent > 90 && "[&>div]:bg-red-500",
+                        budgetPercent > 75 && budgetPercent <= 90 && "[&>div]:bg-yellow-500",
+                      )}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {budgetPercent > 90 && "Warning: Budget utilization is high"}
+                      {budgetPercent > 75 && budgetPercent <= 90 && "Caution: Approaching budget limit"}
+                      {budgetPercent <= 75 && `${(100 - budgetPercent).toFixed(0)}% budget remaining`}
+                    </p>
+                  </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Completion Progress</span>
-                  <span className="text-sm font-semibold">{project.completion}%</span>
-                </div>
-                <Progress value={project.completion} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Completion Progress</span>
+                      <span className="text-sm font-semibold">{project.completion}%</span>
+                    </div>
+                    <Progress value={project.completion} className="h-2" />
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Recent Expenses */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Recent Expenses</CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/expenses">View all</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {projectExpenses.length > 0 ? (
-                  projectExpenses.map((expense: Expense) => (
-                    <div
-                      key={expense.id}
-                      className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{expense.description}</p>
-                        <p className="text-xs text-muted-foreground">{expense.category}</p>
-                      </div>
-                      <div className="text-right ml-4">
-                        <p className="text-sm font-semibold">{formatCurrency(expense.amount)}</p>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-xs",
-                            expense.status === "approved" && "bg-green-500/10 text-green-500",
-                            expense.status === "pending" && "bg-yellow-500/10 text-yellow-500",
-                            expense.status === "rejected" && "bg-red-500/10 text-red-500",
-                          )}
+          <Collapsible open={isExpensesOpen} onOpenChange={setIsExpensesOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Recent Expenses</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
+                      <Link href="/expenses">View all</Link>
+                    </Button>
+                    <ChevronDown className={cn(
+                      "h-5 w-5 transition-transform duration-200",
+                      isExpensesOpen ? "transform rotate-180" : ""
+                    )} />
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="space-y-3">
+                    {projectExpenses.length > 0 ? (
+                      projectExpenses.map((expense: Expense) => (
+                        <div
+                          key={expense.id}
+                          className="flex items-center justify-between py-2 border-b border-border last:border-0"
                         >
-                          {expense.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No expenses recorded</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Attendance Details</CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/attendance">View all attendance</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Attendance Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
-                <div className="p-4 rounded-lg bg-secondary/50">
-                  <p className="text-xs text-muted-foreground mb-1">Present Today</p>
-                  <p className="text-2xl font-bold text-green-500">{presentToday}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-secondary/50">
-                  <p className="text-xs text-muted-foreground mb-1">Total Hours</p>
-                  <p className="text-2xl font-bold">{totalHours.toFixed(1)}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-secondary/50">
-                  <p className="text-xs text-muted-foreground mb-1">Overtime</p>
-                  <p className="text-2xl font-bold text-yellow-500">{overtimeToday}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-secondary/50">
-                  <p className="text-xs text-muted-foreground mb-1">OT Hours</p>
-                  <p className="text-2xl font-bold text-yellow-500">{totalOvertimeHours.toFixed(1)}</p>
-                </div>
-              </div>
-
-              {/* Attendance Records */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold mb-3">Recent Records</h4>
-                {projectAttendance.length > 0 ? (
-                  <>
-                    {/* Desktop View - Table */}
-                    <div className="hidden md:block overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Employee</th>
-                            <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Date</th>
-                            <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Check In</th>
-                            <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Check Out</th>
-                            <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Hours</th>
-                            <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Overtime</th>
-                            <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {projectAttendance.map((record: Attendance) => (
-                            <tr
-                              key={record.id}
-                              className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{expense.description}</p>
+                            <p className="text-xs text-muted-foreground">{expense.category}</p>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-sm font-semibold">{formatCurrency(expense.amount)}</p>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs",
+                                expense.status === "approved" && "bg-green-500/10 text-green-500",
+                                expense.status === "pending" && "bg-yellow-500/10 text-yellow-500",
+                                expense.status === "rejected" && "bg-red-500/10 text-red-500",
+                              )}
                             >
-                              <td className="py-3 px-2">
-                                <p className="text-sm font-medium">{getEmployeeName(record)}</p>
-                              </td>
-                              <td className="py-3 px-2">
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(record.date).toLocaleDateString()}
-                                </p>
-                              </td>
-                              <td className="py-3 px-2">
-                                <p className="text-sm">{record.checkIn}</p>
-                              </td>
-                              <td className="py-3 px-2">
-                                <p className="text-sm">{record.checkOut}</p>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p className="text-sm font-medium">{record.hours}h</p>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p
-                                  className={cn(
-                                    "text-sm font-medium",
-                                    record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
-                                  )}
+                              {expense.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No expenses recorded</p>
+                    )}
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          <Collapsible open={isAttendanceOpen} onOpenChange={setIsAttendanceOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Attendance Details</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
+                      <Link href="/attendance">View all attendance</Link>
+                    </Button>
+                    <ChevronDown className={cn(
+                      "h-5 w-5 transition-transform duration-200",
+                      isAttendanceOpen ? "transform rotate-180" : ""
+                    )} />
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  {/* Attendance Stats */}
+                  <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
+                    <div className="p-4 rounded-lg bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">Present Today</p>
+                      <p className="text-2xl font-bold text-green-500">{presentToday}</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">Total Hours</p>
+                      <p className="text-2xl font-bold">{totalHours.toFixed(1)}</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">Overtime</p>
+                      <p className="text-2xl font-bold text-yellow-500">{overtimeToday}</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">OT Hours</p>
+                      <p className="text-2xl font-bold text-yellow-500">{totalOvertimeHours.toFixed(1)}</p>
+                    </div>
+                  </div>
+
+                  {/* Attendance Records */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold mb-3">Recent Records</h4>
+                    {projectAttendance.length > 0 ? (
+                      <>
+                        {/* Desktop View - Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Employee</th>
+                                <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Date</th>
+                                <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Check In</th>
+                                <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Check Out</th>
+                                <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Hours</th>
+                                <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Overtime</th>
+                                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {projectAttendance.map((record: Attendance) => (
+                                <tr
+                                  key={record.id}
+                                  className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
                                 >
-                                  {record.overtime > 0 ? `+${record.overtime}h` : "-"}
-                                </p>
-                              </td>
-                              <td className="py-3 px-2 text-center">
+                                  <td className="py-3 px-2">
+                                    <p className="text-sm font-medium">{getEmployeeName(record)}</p>
+                                  </td>
+                                  <td className="py-3 px-2">
+                                    <p className="text-sm text-muted-foreground">
+                                      {new Date(record.date).toLocaleDateString()}
+                                    </p>
+                                  </td>
+                                  <td className="py-3 px-2">
+                                    <p className="text-sm">{record.checkIn}</p>
+                                  </td>
+                                  <td className="py-3 px-2">
+                                    <p className="text-sm">{record.checkOut}</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p className="text-sm font-medium">{record.hours}h</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p
+                                      className={cn(
+                                        "text-sm font-medium",
+                                        record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
+                                      )}
+                                    >
+                                      {record.overtime > 0 ? `+${record.overtime}h` : "-"}
+                                    </p>
+                                  </td>
+                                  <td className="py-3 px-2 text-center">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs",
+                                        record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
+                                        record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
+                                        record.status === "half-day" &&
+                                        "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+                                        record.status === "overtime" &&
+                                        "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                                      )}
+                                    >
+                                      {record.status}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mobile View - Cards */}
+                        <div className="md:hidden space-y-3">
+                          {projectAttendance.map((record: Attendance) => (
+                            <div key={record.id} className="p-4 rounded-lg border border-border bg-card">
+                              <div className="flex items-start justify-between mb-3">
+                                <div>
+                                  <p className="font-medium text-sm">{getEmployeeName(record)}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {new Date(record.date).toLocaleDateString()}
+                                  </p>
+                                </div>
                                 <Badge
                                   variant="outline"
                                   className={cn(
                                     "text-xs",
                                     record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
                                     record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
-                                    record.status === "half-day" &&
-                                    "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-                                    record.status === "overtime" &&
-                                    "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                                    record.status === "half-day" && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+                                    record.status === "overtime" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
                                   )}
                                 >
                                   {record.status}
                                 </Badge>
-                              </td>
-                            </tr>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Check In</p>
+                                  <p className="font-medium">{record.checkIn}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Check Out</p>
+                                  <p className="font-medium">{record.checkOut}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Hours Worked</p>
+                                  <p className="font-semibold">{record.hours}h</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Overtime</p>
+                                  <p
+                                    className={cn(
+                                      "font-semibold",
+                                      record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
+                                    )}
+                                  >
+                                    {record.overtime > 0 ? `+${record.overtime}h` : "-"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Mobile View - Cards */}
-                    <div className="md:hidden space-y-3">
-                      {projectAttendance.map((record: Attendance) => (
-                        <div key={record.id} className="p-4 rounded-lg border border-border bg-card">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <p className="font-medium text-sm">{getEmployeeName(record)}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {new Date(record.date).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs",
-                                record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
-                                record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
-                                record.status === "half-day" && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-                                record.status === "overtime" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
-                              )}
-                            >
-                              {record.status}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <p className="text-xs text-muted-foreground">Check In</p>
-                              <p className="font-medium">{record.checkIn}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Check Out</p>
-                              <p className="font-medium">{record.checkOut}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Hours Worked</p>
-                              <p className="font-semibold">{record.hours}h</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Overtime</p>
-                              <p
-                                className={cn(
-                                  "font-semibold",
-                                  record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
-                                )}
-                              >
-                                {record.overtime > 0 ? `+${record.overtime}h` : "-"}
-                              </p>
-                            </div>
-                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No attendance records found for this project</p>
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No attendance records found for this project</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Employee Payment & Attendance Tracking */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Payment & Attendance Tracking</CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/payroll">View payroll</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {projectEmployees.length > 0 ? (
-                <>
-                  {/* Desktop View - Table */}
-                  <div className="hidden lg:block overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Employee</th>
-                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Attendance Days</th>
-                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Total Earned</th>
-                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Total Paid</th>
-                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Pending Days</th>
-                          <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Pending</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+          <Collapsible open={isPaymentTrackingOpen} onOpenChange={setIsPaymentTrackingOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Payment & Attendance Tracking</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
+                      <Link href="/payroll">View payroll</Link>
+                    </Button>
+                    <ChevronDown className={cn(
+                      "h-5 w-5 transition-transform duration-200",
+                      isPaymentTrackingOpen ? "transform rotate-180" : ""
+                    )} />
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  {projectEmployees.length > 0 ? (
+                    <>
+                      {/* Desktop View - Table */}
+                      <div className="hidden lg:block overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Employee</th>
+                              <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Attendance Days</th>
+                              <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Total Earned</th>
+                              <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Total Paid</th>
+                              <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Pending Days</th>
+                              <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Pending</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {projectEmployees.map((employee: Employee) => {
+                              const empId = employee.id || (employee as any)._id;
+
+                              // Calculate attendance count for this employee on this project
+                              const employeeAttendance = projectAttendance.filter((att: any) => {
+                                const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
+                                  ? (att.employeeId as any)._id || (att.employeeId as any).id
+                                  : att.employeeId;
+                                return attEmpId === empId;
+                              });
+
+                              const attendanceDays = employeeAttendance.length;
+                              const attendanceUnits = employeeAttendance.reduce((sum: number, att: any) => {
+                                if (att.status === 'present') return sum + 1;
+                                if (att.status === 'half-day') return sum + 0.5;
+                                return sum;
+                              }, 0);
+
+                              // Calculate total earned based on attendance and daily rate
+                              const totalEarned = employeeAttendance.reduce((sum: number, att: any) => {
+                                const dailyRate = employee.dailyRate || 0;
+                                if (att.status === 'present') return sum + dailyRate;
+                                if (att.status === 'half-day') return sum + (dailyRate / 2);
+                                return sum;
+                              }, 0);
+
+                              // Calculate total paid for this employee on this project
+                              let totalPaid = 0;
+                              if (payrollData && payrollData.length > 0) {
+                                payrollData.forEach((payroll: any) => {
+                                  const payrollEmpId = typeof payroll.employeeId === 'object' && payroll.employeeId !== null
+                                    ? (payroll.employeeId as any)._id || (payroll.employeeId as any).id
+                                    : payroll.employeeId;
+
+                                  if (payrollEmpId === empId && payroll.payments) {
+                                    payroll.payments.forEach((payment: any) => {
+                                      const paymentProjId = typeof payment.projectId === 'object' && payment.projectId !== null
+                                        ? (payment.projectId as any)._id || (payment.projectId as any).id
+                                        : payment.projectId;
+
+                                      // Include project-specific payments and general payments (no projectId)
+                                      if (paymentProjId === id || !paymentProjId) {
+                                        totalPaid += payment.amount || 0;
+                                      }
+                                    });
+                                  }
+                                });
+                              }
+
+                              const pendingAmount = Math.max(0, totalEarned - totalPaid);
+                              const dailyRate = employee.dailyRate || 0;
+                              const paidUnits = dailyRate > 0 ? totalPaid / dailyRate : 0;
+                              const pendingUnits = Math.max(0, attendanceUnits - paidUnits);
+
+                              return (
+                                <tr
+                                  key={empId}
+                                  className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
+                                >
+                                  <td className="py-3 px-2">
+                                    <div className="flex items-center gap-2">
+                                      <Avatar className="h-7 w-7">
+                                        <AvatarFallback className="bg-secondary text-xs">
+                                          {employee.name.split(" ").map((n: string) => n[0]).join("")}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <p className="text-sm font-medium">{employee.name}</p>
+                                        <p className="text-xs text-muted-foreground">{employee.role}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p className="text-sm font-medium">{attendanceDays}</p>
+                                    <p className="text-xs text-muted-foreground">days</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p className="text-sm font-medium text-blue-600">{formatCurrency(totalEarned)}</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p className="text-sm font-medium text-green-600">{formatCurrency(totalPaid)}</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p className={cn(
+                                      "text-sm font-medium",
+                                      pendingUnits > 0 ? "text-orange-600" : "text-muted-foreground"
+                                    )}>
+                                      {formatDayCount(pendingUnits)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">days</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <p className={cn(
+                                      "text-sm font-bold",
+                                      pendingAmount > 0 ? "text-orange-600" : "text-muted-foreground"
+                                    )}>
+                                      {formatCurrency(pendingAmount)}
+                                    </p>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t-2 border-border font-semibold">
+                              <td className="py-3 px-2 text-sm">Total</td>
+                              <td className="py-3 px-2 text-right text-sm">
+                                {projectAttendance.length}
+                              </td>
+                              <td className="py-3 px-2 text-right text-sm text-blue-600">
+                                {formatCurrency(projectEmployees.reduce((sum, emp) => {
+                                  if (!emp) return sum;
+                                  const empId = emp.id || (emp as any)._id;
+                                  if (!empId) return sum;
+                                  const empAtt = projectAttendance.filter((att: any) => {
+                                    const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
+                                      ? (att.employeeId as any)._id || (att.employeeId as any).id
+                                      : att.employeeId;
+                                    return attEmpId === empId;
+                                  });
+                                  return sum + empAtt.reduce((s: number, att: any) => {
+                                    const rate = emp.dailyRate || 0;
+                                    if (att.status === 'present') return s + rate;
+                                    if (att.status === 'half-day') return s + (rate / 2);
+                                    return s;
+                                  }, 0);
+                                }, 0))}
+                              </td>
+                              <td className="py-3 px-2 text-right text-sm text-green-600">
+                                {formatCurrency(projectEmployees.reduce((sum, emp) => {
+                                  if (!emp) return sum;
+                                  const empId = emp.id || (emp as any)._id;
+                                  if (!empId) return sum;
+                                  let paid = 0;
+                                  if (payrollData) {
+                                    payrollData.forEach((p: any) => {
+                                      const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                      if (pEmpId === empId && p.payments) {
+                                        p.payments.forEach((pay: any) => {
+                                          const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                        });
+                                      }
+                                    });
+                                  }
+                                  return sum + paid;
+                                }, 0))}
+                              </td>
+                              <td className="py-3 px-2 text-right text-sm text-orange-600">
+                                {formatDayCount(projectEmployees.reduce((sum, emp) => {
+                                  if (!emp) return sum;
+                                  const empId = emp.id || (emp as any)._id;
+                                  if (!empId) return sum;
+                                  const empAtt = projectAttendance.filter((att: any) => {
+                                    const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                    return attEmpId === empId;
+                                  });
+                                  const attendanceUnits = empAtt.reduce((s: number, att: any) => {
+                                    if (att.status === 'present') return s + 1;
+                                    if (att.status === 'half-day') return s + 0.5;
+                                    return s;
+                                  }, 0);
+                                  let paid = 0;
+                                  if (payrollData) {
+                                    payrollData.forEach((p: any) => {
+                                      const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                      if (pEmpId === empId && p.payments) {
+                                        p.payments.forEach((pay: any) => {
+                                          const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                        });
+                                      }
+                                    });
+                                  }
+                                  const rate = emp.dailyRate || 0;
+                                  const paidUnits = rate > 0 ? paid / rate : 0;
+                                  return sum + Math.max(0, attendanceUnits - paidUnits);
+                                }, 0))}
+                              </td>
+                              <td className="py-3 px-2 text-right text-sm text-orange-600 font-bold">
+                                {formatCurrency((() => {
+                                  const totalEarned = projectEmployees.reduce((sum, emp) => {
+                                    if (!emp) return sum;
+                                    const empId = emp.id || (emp as any)._id;
+                                    if (!empId) return sum;
+                                    const empAtt = projectAttendance.filter((att: any) => {
+                                      const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                      return attEmpId === empId;
+                                    });
+                                    return sum + empAtt.reduce((s: number, att: any) => {
+                                      const rate = emp.dailyRate || 0;
+                                      if (att.status === 'present') return s + rate;
+                                      if (att.status === 'half-day') return s + (rate / 2);
+                                      return s;
+                                    }, 0);
+                                  }, 0);
+                                  const totalPaid = projectEmployees.reduce((sum, emp) => {
+                                    if (!emp) return sum;
+                                    const empId = emp.id || (emp as any)._id;
+                                    if (!empId) return sum;
+                                    let paid = 0;
+                                    if (payrollData) {
+                                      payrollData.forEach((p: any) => {
+                                        const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                        if (pEmpId === empId && p.payments) {
+                                          p.payments.forEach((pay: any) => {
+                                            const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                            if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                          });
+                                        }
+                                      });
+                                    }
+                                    return sum + paid;
+                                  }, 0);
+                                  return Math.max(0, totalEarned - totalPaid);
+                                })())}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+
+                      {/* Mobile/Tablet View - Cards */}
+                      <div className="lg:hidden space-y-3">
                         {projectEmployees.map((employee: Employee) => {
                           const empId = employee.id || (employee as any)._id;
 
-                          // Calculate attendance count for this employee on this project
                           const employeeAttendance = projectAttendance.filter((att: any) => {
                             const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
                               ? (att.employeeId as any)._id || (att.employeeId as any).id
                               : att.employeeId;
                             return attEmpId === empId;
                           });
-
-                          const attendanceDays = employeeAttendance.length;
                           const attendanceUnits = employeeAttendance.reduce((sum: number, att: any) => {
                             if (att.status === 'present') return sum + 1;
                             if (att.status === 'half-day') return sum + 0.5;
                             return sum;
                           }, 0);
 
-                          // Calculate total earned based on attendance and daily rate
                           const totalEarned = employeeAttendance.reduce((sum: number, att: any) => {
                             const dailyRate = employee.dailyRate || 0;
                             if (att.status === 'present') return sum + dailyRate;
@@ -639,7 +930,6 @@ function ProjectDetailContent({ id }: { id: string }) {
                             return sum;
                           }, 0);
 
-                          // Calculate total paid for this employee on this project
                           let totalPaid = 0;
                           if (payrollData && payrollData.length > 0) {
                             payrollData.forEach((payroll: any) => {
@@ -653,7 +943,6 @@ function ProjectDetailContent({ id }: { id: string }) {
                                     ? (payment.projectId as any)._id || (payment.projectId as any).id
                                     : payment.projectId;
 
-                                  // Include project-specific payments and general payments (no projectId)
                                   if (paymentProjId === id || !paymentProjId) {
                                     totalPaid += payment.amount || 0;
                                   }
@@ -668,496 +957,318 @@ function ProjectDetailContent({ id }: { id: string }) {
                           const pendingUnits = Math.max(0, attendanceUnits - paidUnits);
 
                           return (
-                            <tr
-                              key={empId}
-                              className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
-                            >
-                              <td className="py-3 px-2">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-7 w-7">
-                                    <AvatarFallback className="bg-secondary text-xs">
-                                      {employee.name.split(" ").map((n: string) => n[0]).join("")}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="text-sm font-medium">{employee.name}</p>
-                                    <p className="text-xs text-muted-foreground">{employee.role}</p>
-                                  </div>
+                            <div key={empId} className="p-4 rounded-lg border border-border bg-card">
+                              <div className="flex items-center gap-3 mb-4">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarFallback className="bg-secondary">
+                                    {employee.name.split(" ").map((n: string) => n[0]).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{employee.name}</p>
+                                  <p className="text-xs text-muted-foreground">{employee.role}</p>
                                 </div>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p className="text-sm font-medium">{attendanceDays}</p>
-                                <p className="text-xs text-muted-foreground">days</p>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p className="text-sm font-medium text-blue-600">{formatCurrency(totalEarned)}</p>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p className="text-sm font-medium text-green-600">{formatCurrency(totalPaid)}</p>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p className={cn(
-                                  "text-sm font-medium",
-                                  pendingUnits > 0 ? "text-orange-600" : "text-muted-foreground"
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="p-2 rounded bg-secondary/50">
+                                  <p className="text-xs text-muted-foreground mb-1">Attendance</p>
+                                  <p className="text-lg font-semibold">{formatDayCount(attendanceUnits)} days</p>
+                                </div>
+                                <div className="p-2 rounded bg-blue-500/5 border border-blue-500/20">
+                                  <p className="text-xs text-muted-foreground mb-1">Total Earned</p>
+                                  <p className="text-lg font-semibold text-blue-600">{formatCurrency(totalEarned)}</p>
+                                </div>
+                                <div className="p-2 rounded bg-green-500/5 border border-green-500/20">
+                                  <p className="text-xs text-muted-foreground mb-1">Total Paid</p>
+                                  <p className="text-lg font-semibold text-green-600">{formatCurrency(totalPaid)}</p>
+                                </div>
+                                <div className={cn(
+                                  "p-2 rounded border",
+                                  pendingUnits > 0
+                                    ? "bg-orange-500/5 border-orange-500/20"
+                                    : "bg-secondary/50 border-border"
                                 )}>
-                                  {formatDayCount(pendingUnits)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">days</p>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <p className={cn(
-                                  "text-sm font-bold",
-                                  pendingAmount > 0 ? "text-orange-600" : "text-muted-foreground"
+                                  <p className="text-xs text-muted-foreground mb-1">Pending Days</p>
+                                  <p className={cn(
+                                    "text-lg font-bold",
+                                    pendingUnits > 0 ? "text-orange-600" : "text-muted-foreground"
+                                  )}>
+                                    {formatDayCount(pendingUnits)} days
+                                  </p>
+                                </div>
+                                <div className={cn(
+                                  "p-2 rounded border",
+                                  pendingAmount > 0
+                                    ? "bg-orange-500/5 border-orange-500/20"
+                                    : "bg-secondary/50 border-border"
                                 )}>
-                                  {formatCurrency(pendingAmount)}
-                                </p>
-                              </td>
-                            </tr>
+                                  <p className="text-xs text-muted-foreground mb-1">Pending</p>
+                                  <p className={cn(
+                                    "text-lg font-bold",
+                                    pendingAmount > 0 ? "text-orange-600" : "text-muted-foreground"
+                                  )}>
+                                    {formatCurrency(pendingAmount)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           );
                         })}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-border font-semibold">
-                          <td className="py-3 px-2 text-sm">Total</td>
-                          <td className="py-3 px-2 text-right text-sm">
-                            {projectAttendance.length}
-                          </td>
-                          <td className="py-3 px-2 text-right text-sm text-blue-600">
-                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                              const empId = emp.id || (emp as any)._id;
-                              const empAtt = projectAttendance.filter((att: any) => {
-                                const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
-                                  ? (att.employeeId as any)._id || (att.employeeId as any).id
-                                  : att.employeeId;
-                                return attEmpId === empId;
-                              });
-                              return sum + empAtt.reduce((s: number, att: any) => {
-                                const rate = emp.dailyRate || 0;
-                                if (att.status === 'present') return s + rate;
-                                if (att.status === 'half-day') return s + (rate / 2);
-                                return s;
-                              }, 0);
-                            }, 0))}
-                          </td>
-                          <td className="py-3 px-2 text-right text-sm text-green-600">
-                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                              const empId = emp.id || (emp as any)._id;
-                              let paid = 0;
-                              if (payrollData) {
-                                payrollData.forEach((p: any) => {
-                                  const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                  if (pEmpId === empId && p.payments) {
-                                    p.payments.forEach((pay: any) => {
-                                      const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                      if (pProjId === id || !pProjId) paid += pay.amount || 0;
-                                    });
-                                  }
-                                });
-                              }
-                              return sum + paid;
-                            }, 0))}
-                          </td>
-                          <td className="py-3 px-2 text-right text-sm text-orange-600">
-                            {formatDayCount(projectEmployees.reduce((sum, emp) => {
-                              const empId = emp.id || (emp as any)._id;
-                              const empAtt = projectAttendance.filter((att: any) => {
-                                const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
-                                return attEmpId === empId;
-                              });
-                              const attendanceUnits = empAtt.reduce((s: number, att: any) => {
-                                if (att.status === 'present') return s + 1;
-                                if (att.status === 'half-day') return s + 0.5;
-                                return s;
-                              }, 0);
-                              let paid = 0;
-                              if (payrollData) {
-                                payrollData.forEach((p: any) => {
-                                  const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                  if (pEmpId === empId && p.payments) {
-                                    p.payments.forEach((pay: any) => {
-                                      const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                      if (pProjId === id || !pProjId) paid += pay.amount || 0;
-                                    });
-                                  }
-                                });
-                              }
-                              const rate = emp.dailyRate || 0;
-                              const paidUnits = rate > 0 ? paid / rate : 0;
-                              return sum + Math.max(0, attendanceUnits - paidUnits);
-                            }, 0))}
-                          </td>
-                          <td className="py-3 px-2 text-right text-sm text-orange-600 font-bold">
-                            {formatCurrency((() => {
-                              const totalEarned = projectEmployees.reduce((sum, emp) => {
-                                const empId = emp.id || (emp as any)._id;
-                                const empAtt = projectAttendance.filter((att: any) => {
-                                  const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
-                                  return attEmpId === empId;
-                                });
-                                return sum + empAtt.reduce((s: number, att: any) => {
-                                  const rate = emp.dailyRate || 0;
-                                  if (att.status === 'present') return s + rate;
-                                  if (att.status === 'half-day') return s + (rate / 2);
-                                  return s;
-                                }, 0);
-                              }, 0);
-                              const totalPaid = projectEmployees.reduce((sum, emp) => {
-                                const empId = emp.id || (emp as any)._id;
-                                let paid = 0;
-                                if (payrollData) {
-                                  payrollData.forEach((p: any) => {
-                                    const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                    if (pEmpId === empId && p.payments) {
-                                      p.payments.forEach((pay: any) => {
-                                        const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                        if (pProjId === id || !pProjId) paid += pay.amount || 0;
-                                      });
-                                    }
-                                  });
-                                }
-                                return sum + paid;
-                              }, 0);
-                              return Math.max(0, totalEarned - totalPaid);
-                            })())}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
 
-                  {/* Mobile/Tablet View - Cards */}
-                  <div className="lg:hidden space-y-3">
-                    {projectEmployees.map((employee: Employee) => {
-                      const empId = employee.id || (employee as any)._id;
-
-                      const employeeAttendance = projectAttendance.filter((att: any) => {
-                        const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
-                          ? (att.employeeId as any)._id || (att.employeeId as any).id
-                          : att.employeeId;
-                        return attEmpId === empId;
-                      });
-                      const attendanceUnits = employeeAttendance.reduce((sum: number, att: any) => {
-                        if (att.status === 'present') return sum + 1;
-                        if (att.status === 'half-day') return sum + 0.5;
-                        return sum;
-                      }, 0);
-
-                      const totalEarned = employeeAttendance.reduce((sum: number, att: any) => {
-                        const dailyRate = employee.dailyRate || 0;
-                        if (att.status === 'present') return sum + dailyRate;
-                        if (att.status === 'half-day') return sum + (dailyRate / 2);
-                        return sum;
-                      }, 0);
-
-                      let totalPaid = 0;
-                      if (payrollData && payrollData.length > 0) {
-                        payrollData.forEach((payroll: any) => {
-                          const payrollEmpId = typeof payroll.employeeId === 'object' && payroll.employeeId !== null
-                            ? (payroll.employeeId as any)._id || (payroll.employeeId as any).id
-                            : payroll.employeeId;
-
-                          if (payrollEmpId === empId && payroll.payments) {
-                            payroll.payments.forEach((payment: any) => {
-                              const paymentProjId = typeof payment.projectId === 'object' && payment.projectId !== null
-                                ? (payment.projectId as any)._id || (payment.projectId as any).id
-                                : payment.projectId;
-
-                              if (paymentProjId === id || !paymentProjId) {
-                                totalPaid += payment.amount || 0;
-                              }
-                            });
-                          }
-                        });
-                      }
-
-                      const pendingAmount = Math.max(0, totalEarned - totalPaid);
-                      const dailyRate = employee.dailyRate || 0;
-                      const paidUnits = dailyRate > 0 ? totalPaid / dailyRate : 0;
-                      const pendingUnits = Math.max(0, attendanceUnits - paidUnits);
-
-                      return (
-                        <div key={empId} className="p-4 rounded-lg border border-border bg-card">
-                          <div className="flex items-center gap-3 mb-4">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-secondary">
-                                {employee.name.split(" ").map((n: string) => n[0]).join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{employee.name}</p>
-                              <p className="text-xs text-muted-foreground">{employee.role}</p>
-                            </div>
-                          </div>
+                        {/* Mobile Total Summary */}
+                        <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 mt-4">
+                          <p className="text-xs font-semibold text-muted-foreground mb-3">PROJECT TOTALS</p>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-2 rounded bg-secondary/50">
-                              <p className="text-xs text-muted-foreground mb-1">Attendance</p>
-                              <p className="text-lg font-semibold">{formatDayCount(attendanceUnits)} days</p>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Total Records</p>
+                              <p className="text-lg font-semibold">{projectAttendance.length}</p>
                             </div>
-                            <div className="p-2 rounded bg-blue-500/5 border border-blue-500/20">
-                              <p className="text-xs text-muted-foreground mb-1">Total Earned</p>
-                              <p className="text-lg font-semibold text-blue-600">{formatCurrency(totalEarned)}</p>
-                            </div>
-                            <div className="p-2 rounded bg-green-500/5 border border-green-500/20">
-                              <p className="text-xs text-muted-foreground mb-1">Total Paid</p>
-                              <p className="text-lg font-semibold text-green-600">{formatCurrency(totalPaid)}</p>
-                            </div>
-                            <div className={cn(
-                              "p-2 rounded border",
-                              pendingUnits > 0
-                                ? "bg-orange-500/5 border-orange-500/20"
-                                : "bg-secondary/50 border-border"
-                            )}>
-                              <p className="text-xs text-muted-foreground mb-1">Pending Days</p>
-                              <p className={cn(
-                                "text-lg font-bold",
-                                pendingUnits > 0 ? "text-orange-600" : "text-muted-foreground"
-                              )}>
-                                {formatDayCount(pendingUnits)} days
+                            <div>
+                              <p className="text-xs text-muted-foreground">Total Earned</p>
+                              <p className="text-lg font-semibold text-blue-600">
+                                {formatCurrency(projectEmployees.reduce((sum, emp) => {
+                                  const empId = emp.id || (emp as any)._id;
+                                  const empAtt = projectAttendance.filter((att: any) => {
+                                    const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                    return attEmpId === empId;
+                                  });
+                                  return sum + empAtt.reduce((s: number, att: any) => {
+                                    const rate = emp.dailyRate || 0;
+                                    if (att.status === 'present') return s + rate;
+                                    if (att.status === 'half-day') return s + (rate / 2);
+                                    return s;
+                                  }, 0);
+                                }, 0))}
                               </p>
                             </div>
-                            <div className={cn(
-                              "p-2 rounded border",
-                              pendingAmount > 0
-                                ? "bg-orange-500/5 border-orange-500/20"
-                                : "bg-secondary/50 border-border"
-                            )}>
-                              <p className="text-xs text-muted-foreground mb-1">Pending</p>
-                              <p className={cn(
-                                "text-lg font-bold",
-                                pendingAmount > 0 ? "text-orange-600" : "text-muted-foreground"
-                              )}>
-                                {formatCurrency(pendingAmount)}
+                            <div>
+                              <p className="text-xs text-muted-foreground">Total Paid</p>
+                              <p className="text-lg font-semibold text-green-600">
+                                {formatCurrency(projectEmployees.reduce((sum, emp) => {
+                                  const empId = emp.id || (emp as any)._id;
+                                  let paid = 0;
+                                  if (payrollData) {
+                                    payrollData.forEach((p: any) => {
+                                      const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                      if (pEmpId === empId && p.payments) {
+                                        p.payments.forEach((pay: any) => {
+                                          const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                        });
+                                      }
+                                    });
+                                  }
+                                  return sum + paid;
+                                }, 0))}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Pending Days</p>
+                              <p className="text-lg font-semibold text-orange-600">
+                                {formatDayCount(projectEmployees.reduce((sum, emp) => {
+                                  const empId = emp.id || (emp as any)._id;
+                                  const empAtt = projectAttendance.filter((att: any) => {
+                                    const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                    return attEmpId === empId;
+                                  });
+                                  const attendanceUnits = empAtt.reduce((s: number, att: any) => {
+                                    if (att.status === 'present') return s + 1;
+                                    if (att.status === 'half-day') return s + 0.5;
+                                    return s;
+                                  }, 0);
+                                  let paid = 0;
+                                  if (payrollData) {
+                                    payrollData.forEach((p: any) => {
+                                      const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                      if (pEmpId === empId && p.payments) {
+                                        p.payments.forEach((pay: any) => {
+                                          const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                        });
+                                      }
+                                    });
+                                  }
+                                  const rate = emp.dailyRate || 0;
+                                  const paidUnits = rate > 0 ? paid / rate : 0;
+                                  return sum + Math.max(0, attendanceUnits - paidUnits);
+                                }, 0))}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Total Pending</p>
+                              <p className="text-lg font-bold text-orange-600">
+                                {formatCurrency((() => {
+                                  const totalEarned = projectEmployees.reduce((sum, emp) => {
+                                    const empId = emp.id || (emp as any)._id;
+                                    const empAtt = projectAttendance.filter((att: any) => {
+                                      const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                      return attEmpId === empId;
+                                    });
+                                    return sum + empAtt.reduce((s: number, att: any) => {
+                                      const rate = emp.dailyRate || 0;
+                                      if (att.status === 'present') return s + rate;
+                                      if (att.status === 'half-day') return s + (rate / 2);
+                                      return s;
+                                    }, 0);
+                                  }, 0);
+                                  const totalPaid = projectEmployees.reduce((sum, emp) => {
+                                    const empId = emp.id || (emp as any)._id;
+                                    let paid = 0;
+                                    if (payrollData) {
+                                      payrollData.forEach((p: any) => {
+                                        const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                        if (pEmpId === empId && p.payments) {
+                                          p.payments.forEach((pay: any) => {
+                                            const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                            if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                          });
+                                        }
+                                      });
+                                    }
+                                    return sum + paid;
+                                  }, 0);
+                                  return Math.max(0, totalEarned - totalPaid);
+                                })())}
                               </p>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Mobile Total Summary */}
-                    <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 mt-4">
-                      <p className="text-xs font-semibold text-muted-foreground mb-3">PROJECT TOTALS</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Records</p>
-                          <p className="text-lg font-semibold">{projectAttendance.length}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Earned</p>
-                          <p className="text-lg font-semibold text-blue-600">
-                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                              const empId = emp.id || (emp as any)._id;
-                              const empAtt = projectAttendance.filter((att: any) => {
-                                const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
-                                return attEmpId === empId;
-                              });
-                              return sum + empAtt.reduce((s: number, att: any) => {
-                                const rate = emp.dailyRate || 0;
-                                if (att.status === 'present') return s + rate;
-                                if (att.status === 'half-day') return s + (rate / 2);
-                                return s;
-                              }, 0);
-                            }, 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Paid</p>
-                          <p className="text-lg font-semibold text-green-600">
-                            {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                              const empId = emp.id || (emp as any)._id;
-                              let paid = 0;
-                              if (payrollData) {
-                                payrollData.forEach((p: any) => {
-                                  const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                  if (pEmpId === empId && p.payments) {
-                                    p.payments.forEach((pay: any) => {
-                                      const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                      if (pProjId === id || !pProjId) paid += pay.amount || 0;
-                                    });
-                                  }
-                                });
-                              }
-                              return sum + paid;
-                            }, 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Pending Days</p>
-                          <p className="text-lg font-semibold text-orange-600">
-                            {formatDayCount(projectEmployees.reduce((sum, emp) => {
-                              const empId = emp.id || (emp as any)._id;
-                              const empAtt = projectAttendance.filter((att: any) => {
-                                const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
-                                return attEmpId === empId;
-                              });
-                              const attendanceUnits = empAtt.reduce((s: number, att: any) => {
-                                if (att.status === 'present') return s + 1;
-                                if (att.status === 'half-day') return s + 0.5;
-                                return s;
-                              }, 0);
-                              let paid = 0;
-                              if (payrollData) {
-                                payrollData.forEach((p: any) => {
-                                  const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                  if (pEmpId === empId && p.payments) {
-                                    p.payments.forEach((pay: any) => {
-                                      const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                      if (pProjId === id || !pProjId) paid += pay.amount || 0;
-                                    });
-                                  }
-                                });
-                              }
-                              const rate = emp.dailyRate || 0;
-                              const paidUnits = rate > 0 ? paid / rate : 0;
-                              return sum + Math.max(0, attendanceUnits - paidUnits);
-                            }, 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Pending</p>
-                          <p className="text-lg font-bold text-orange-600">
-                            {formatCurrency((() => {
-                              const totalEarned = projectEmployees.reduce((sum, emp) => {
-                                const empId = emp.id || (emp as any)._id;
-                                const empAtt = projectAttendance.filter((att: any) => {
-                                  const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
-                                  return attEmpId === empId;
-                                });
-                                return sum + empAtt.reduce((s: number, att: any) => {
-                                  const rate = emp.dailyRate || 0;
-                                  if (att.status === 'present') return s + rate;
-                                  if (att.status === 'half-day') return s + (rate / 2);
-                                  return s;
-                                }, 0);
-                              }, 0);
-                              const totalPaid = projectEmployees.reduce((sum, emp) => {
-                                const empId = emp.id || (emp as any)._id;
-                                let paid = 0;
-                                if (payrollData) {
-                                  payrollData.forEach((p: any) => {
-                                    const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                    if (pEmpId === empId && p.payments) {
-                                      p.payments.forEach((pay: any) => {
-                                        const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                        if (pProjId === id || !pProjId) paid += pay.amount || 0;
-                                      });
-                                    }
-                                  });
-                                }
-                                return sum + paid;
-                              }, 0);
-                              return Math.max(0, totalEarned - totalPaid);
-                            })())}
-                          </p>
                         </div>
                       </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No team members assigned to this project</p>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No team members assigned to this project</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Project Manager */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Manager</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    {project.manager
-                      .split(" ")
-                      .map((n: string) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{project.manager}</p>
-                  <p className="text-sm text-muted-foreground">Site Manager</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Collapsible open={isProjectManagerOpen} onOpenChange={setIsProjectManagerOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Project Manager</CardTitle>
+                  <ChevronDown className={cn(
+                    "h-5 w-5 transition-transform duration-200",
+                    isProjectManagerOpen ? "transform rotate-180" : ""
+                  )} />
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {project.manager
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{project.manager}</p>
+                      <p className="text-sm text-muted-foreground">Site Manager</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Team Members */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Team Members</CardTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{projectEmployees.length}</span>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => setShowManageMembers(true)}>
-                    Manage Team
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {projectEmployees.length > 0 ? (
-                  projectEmployees.slice(0, 5).map((employee: Employee) => (
-                    <div key={employee.id} className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-secondary text-xs">
-                          {employee.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{employee.name}</p>
-                        <p className="text-xs text-muted-foreground">{employee.role}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No team members assigned</p>
-                )}
-                {projectEmployees.length > 5 && (
-                  <Button variant="ghost" size="sm" className="w-full" asChild>
-                    <Link href="/employees">View all {projectEmployees.length} members</Link>
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <Collapsible open={isTeamMembersOpen} onOpenChange={setIsTeamMembersOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Team Members</CardTitle>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-sm text-muted-foreground">{projectEmployees.length}</span>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => setShowManageMembers(true)}>
+                      Manage Team
+                    </Button>
+                    <ChevronDown className={cn(
+                      "h-5 w-5 transition-transform duration-200",
+                      isTeamMembersOpen ? "transform rotate-180" : ""
+                    )} />
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="space-y-3">
+                    {projectEmployees.length > 0 ? (
+                      projectEmployees.slice(0, 5).map((employee: Employee) => (
+                        <div key={employee.id} className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-secondary text-xs">
+                              {employee.name
+                                .split(" ")
+                                .map((n: string) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{employee.name}</p>
+                            <p className="text-xs text-muted-foreground">{employee.role}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No team members assigned</p>
+                    )}
+                    {projectEmployees.length > 5 && (
+                      <Button variant="ghost" size="sm" className="w-full" asChild>
+                        <Link href="/employees">View all {projectEmployees.length} members</Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Present Today</span>
-                  <span className="font-semibold text-green-500">{presentToday}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overtime Workers</span>
-                  <span className="font-semibold text-yellow-500">{overtimeToday}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Records</span>
-                  <span className="font-semibold">{projectAttendance.length}</span>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span className="text-sm text-muted-foreground">Total Hours</span>
-                  <span className="font-semibold text-primary">{totalHours.toFixed(1)}h</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Collapsible open={isAttendanceSummaryOpen} onOpenChange={setIsAttendanceSummaryOpen}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-70 transition-opacity">
+                  <CardTitle>Attendance Summary</CardTitle>
+                  <ChevronDown className={cn(
+                    "h-5 w-5 transition-transform duration-200",
+                    isAttendanceSummaryOpen ? "transform rotate-180" : ""
+                  )} />
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Present Today</span>
+                      <span className="font-semibold text-green-500">{presentToday}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Overtime Workers</span>
+                      <span className="font-semibold text-yellow-500">{overtimeToday}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Records</span>
+                      <span className="font-semibold">{projectAttendance.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className="text-sm text-muted-foreground">Total Hours</span>
+                      <span className="font-semibold text-primary">{totalHours.toFixed(1)}h</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         </div>
       </div>
 

@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Convert joinDate string to Date object if provided
+        if (body.joinDate && typeof body.joinDate === 'string') {
+            body.joinDate = new Date(body.joinDate + 'T00:00:00Z');
+        }
+
         const employee = await Employee.create(body);
 
         return NextResponse.json(

@@ -44,7 +44,21 @@ const attendanceSchema = new mongoose.Schema({
         default: ''
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+        transform: function (doc, ret) {
+            ret.id = ret._id;
+            delete ret._id;
+            delete ret.__v;
+        }
+    },
+    toObject: {
+        transform: function (doc, ret) {
+            ret.id = ret._id;
+            delete ret._id;
+            delete ret.__v;
+        }
+    }
 });
 
 // Compound index to prevent duplicate attendance for the same employee on the same date

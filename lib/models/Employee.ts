@@ -80,19 +80,23 @@ const employeeSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to clean up projectIds
-employeeSchema.pre('save', function (next) {
-    if (this.isModified('projectIds')) {
-        this.projectIds = this.projectIds.filter(id => {
-            if (!id) return false;
-            // If it's a string, check if it's a valid ObjectId string
-            if (typeof id === 'string') {
-                return mongoose.Types.ObjectId.isValid(id) && !id.includes('\n') && !id.includes('{');
-            }
-            // If it's already an ObjectId instance, it's valid
-            return mongoose.Types.ObjectId.isValid(id as any);
-        });
+employeeSchema.pre('save', function () {
+    try {
+        if (this.isModified('projectIds') && this.projectIds && Array.isArray(this.projectIds)) {
+            this.projectIds = this.projectIds.filter((id: any) => {
+                if (!id) return false;
+                // If it's a string, check if it's a valid ObjectId string
+                if (typeof id === 'string') {
+                    return mongoose.Types.ObjectId.isValid(id) && !id.includes('\n') && !id.includes('{');
+                }
+                // If it's already an ObjectId instance, it's valid
+                return mongoose.Types.ObjectId.isValid(id as any);
+            });
+        }
+    } catch (err) {
+        console.error('Error in pre-save hook:', err);
+        throw err;
     }
-    next();
 });
 
 export default mongoose.models.Employee || mongoose.model('Employee', employeeSchema);

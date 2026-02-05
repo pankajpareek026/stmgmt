@@ -147,20 +147,38 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }
                             <Label htmlFor="edit-proj-startDate">Start Date *</Label>
                             <DatePicker
                                 date={formData.startDate ? new Date(formData.startDate) : undefined}
-                                setDate={(date) => setFormData({
-                                    ...formData,
-                                    startDate: date ? date.toISOString().split('T')[0] : ""
-                                })}
+                                setDate={(date) => {
+                                    if (date) {
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        setFormData({
+                                            ...formData,
+                                            startDate: `${year}-${month}-${day}`
+                                        });
+                                    } else {
+                                        setFormData({ ...formData, startDate: "" });
+                                    }
+                                }}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-proj-endDate">Expected End Date</Label>
                             <DatePicker
                                 date={formData.endDate ? new Date(formData.endDate) : undefined}
-                                setDate={(date) => setFormData({
-                                    ...formData,
-                                    endDate: date ? date.toISOString().split('T')[0] : ""
-                                })}
+                                setDate={(date) => {
+                                    if (date) {
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        setFormData({
+                                            ...formData,
+                                            endDate: `${year}-${month}-${day}`
+                                        });
+                                    } else {
+                                        setFormData({ ...formData, endDate: "" });
+                                    }
+                                }}
                             />
                         </div>
                     </div>

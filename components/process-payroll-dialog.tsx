@@ -260,10 +260,19 @@ export function ProcessPayrollDialog({ open, onOpenChange, onSaveSuccess, initia
                             <Label htmlFor="date">Payment Date *</Label>
                             <DatePicker
                                 date={formData.paymentDate ? new Date(formData.paymentDate) : undefined}
-                                setDate={(date) => setFormData({
-                                    ...formData,
-                                    paymentDate: date ? date.toISOString().split('T')[0] : ""
-                                })}
+                                setDate={(date) => {
+                                    if (date) {
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        setFormData({
+                                            ...formData,
+                                            paymentDate: `${year}-${month}-${day}`
+                                        });
+                                    } else {
+                                        setFormData({ ...formData, paymentDate: "" });
+                                    }
+                                }}
                             />
                             <p className="text-[10px] text-muted-foreground">
                                 Showing total outstanding balance (all time)

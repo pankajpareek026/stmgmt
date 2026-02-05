@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db/connect';
 import Employee from '@/lib/models/Employee';
+import '@/lib/models/Project'; // Ensure Project model is registered for populate
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(

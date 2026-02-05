@@ -34,7 +34,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
         email: "",
         dailyRate: "",
         status: "active",
-        joinDate: new Date().toISOString().split("T")[0],
+        joinDate: "",
         projectIds: [] as string[],
     })
 
@@ -72,7 +72,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                 email: "",
                 dailyRate: "",
                 status: "active",
-                joinDate: new Date().toISOString().split("T")[0],
+                joinDate: "",
                 projectIds: [],
             })
         } catch (err) {
@@ -178,13 +178,35 @@ export function AddEmployeeDialog({ open, onOpenChange, onSaveSuccess }: AddEmpl
                         />
                     </div>
                     <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="john@example.com"
+                            value={formData.email}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="joinDate">Join Date *</Label>
                         <DatePicker
-                            date={formData.joinDate ? new Date(formData.joinDate) : undefined}
-                            setDate={(date) => setFormData({
-                                ...formData,
-                                joinDate: date ? date.toISOString().split('T')[0] : ""
-                            })}
+                            date={formData.joinDate ? (() => {
+                                const [year, month, day] = formData.joinDate.split('-');
+                                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
+                            })() : undefined}
+                            setDate={(date) => {
+                                if (date) {
+                                    // Ensure we use local date, not UTC
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    setFormData({
+                                        ...formData,
+                                        joinDate: `${year}-${month}-${day}`
+                                    });
+                                }
+                            }}
                         />
                     </div>
                     <div className="flex justify-end gap-2 pt-4">

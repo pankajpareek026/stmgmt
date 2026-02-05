@@ -10,10 +10,19 @@ export async function GET(request: NextRequest) {
             .populate('employeeId', 'name role')
             .populate('projectId', 'name');
 
+        // Ensure each record has an id field for client-side operations
+        const transformedAttendances = attendances.map((att: any) => {
+            const doc = att.toObject ? att.toObject() : att;
+            return {
+                ...doc,
+                id: doc.id || doc._id?.toString() || doc._id
+            };
+        });
+
         return NextResponse.json({
             success: true,
-            count: attendances.length,
-            data: attendances
+            count: transformedAttendances.length,
+            data: transformedAttendances
         });
     } catch (error) {
         console.error('Error fetching attendances:', error);

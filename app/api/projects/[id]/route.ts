@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db/connect';
 import Project from '@/lib/models/Project';
+import '@/lib/models/Employee'; // Ensure Employee model is registered for populate
 import Payroll from '@/lib/models/Payroll';
 import { NextRequest, NextResponse } from 'next/server';
 

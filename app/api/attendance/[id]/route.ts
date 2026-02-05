@@ -23,9 +23,16 @@ export async function GET(
             );
         }
 
+        // Ensure id field is set
+        const doc = attendance.toObject ? attendance.toObject() : attendance;
+        const transformedAttendance = {
+            ...doc,
+            id: doc.id || doc._id?.toString() || doc._id
+        };
+
         return NextResponse.json({
             success: true,
-            data: attendance
+            data: transformedAttendance
         });
     } catch (error) {
         console.error('Error fetching attendance:', error);

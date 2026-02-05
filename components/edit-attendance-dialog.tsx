@@ -60,8 +60,13 @@ export function EditAttendanceDialog({
         e.preventDefault()
         setError(null)
 
-        if (!attendance?.id) {
-            setError("Invalid attendance record")
+        // Try multiple ways to get the ID
+        const attendanceId = attendance?.id ||
+            (attendance as any)?._id?.toString() ||
+            (attendance as any)?._id
+
+        if (!attendanceId) {
+            setError("Invalid attendance record - missing ID")
             return
         }
 
@@ -76,13 +81,12 @@ export function EditAttendanceDialog({
                 description: formData.description
             }
 
-            await apiService.put(`/attendance/${attendance.id}`, updateData)
+            await apiService.put(`/attendance/${attendanceId}`, updateData)
             toast.success("Attendance updated successfully")
             onSaveSuccess?.()
             onOpenChange(false)
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to update attendance")
-            console.error(err)
         } finally {
             setIsSaving(false)
         }

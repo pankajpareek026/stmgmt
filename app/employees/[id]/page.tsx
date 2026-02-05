@@ -31,6 +31,7 @@ import { MarkEmployeeAttendanceDialog } from "@/components/mark-employee-attenda
 import { ProcessPayrollDialog } from "@/components/process-payroll-dialog"
 import { AttendanceCalendar } from "@/components/attendance-calendar"
 import { AssignProjectDialog } from "@/components/assign-project-dialog"
+import { EditAttendanceDialog } from "@/components/edit-attendance-dialog"
 
 const statusColors = {
   active: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -45,6 +46,8 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false)
   const [showPayrollDialog, setShowPayrollDialog] = useState(false)
   const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [showEditAttendanceDialog, setShowEditAttendanceDialog] = useState(false)
+  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null)
 
   const { data: employee, loading, error, refresh: refreshEmployee } = useApi<Employee>(`/employees/${id}`)
   const { data: projects } = useApi<Project[]>("/projects")
@@ -53,6 +56,11 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const { data: projectStats, refresh: refreshStats } = useApi<any[]>(`/employees/${id}/stats`)
 
   const [selectedProcessProjectId, setSelectedProcessProjectId] = useState<string | undefined>(undefined)
+
+  const handleEditAttendance = (attendance: any) => {
+    setSelectedAttendance(attendance)
+    setShowEditAttendanceDialog(true)
+  }
 
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this employee?")) {
@@ -131,16 +139,16 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
       .join('')
   }
 
-  // Helper function to assign consistent colors to projects
-  const projectColorMap = new Map<string, string>()
-  const projectColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1']
+  // Helper function to assign consistent colors to projects (memoized to avoid hydration issues)
   const getProjectColor = (projectId: string): string => {
     if (!projectId) return '#6b7280'
-    if (!projectColorMap.has(projectId)) {
-      const colorIndex = projectColorMap.size % projectColors.length
-      projectColorMap.set(projectId, projectColors[colorIndex])
-    }
-    return projectColorMap.get(projectId) || '#6b7280'
+    // Use a deterministic color based on projectId hash
+    const hash = projectId.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc)
+    }, 0)
+    const projectColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1']
+    const colorIndex = Math.abs(hash) % projectColors.length
+    return projectColors[colorIndex]
   }
 
   // Helper function to find payment for a specific date and project
@@ -170,6 +178,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
 
     return {
       ...attendance,
+      id: attendance.id || attendance._id, // Ensure id is preserved
       projectId: attProjectId,
       projectName,
       projectInitials: getProjectInitials(projectName),
@@ -438,7 +447,8 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                         {enrichedAttendance.map((record: any) => (
                           <tr
                             key={record.id}
-                            className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
+                            onClick={() => handleEditAttendance(record)}
+                            className="border-b border-border/50 last:border-0 hover:bg-secondary/50 cursor-pointer transition-colors"
                           >
                             <td className="py-3 px-2">
                               <p className="text-sm font-medium">
@@ -500,7 +510,11 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                   {/* Mobile View - Cards */}
                   <div className="md:hidden space-y-3">
                     {enrichedAttendance.map((record: any) => (
-                      <div key={record.id} className="p-4 rounded-lg border border-border bg-card">
+                      <div
+                        key={record.id}
+                        onClick={() => handleEditAttendance(record)}
+                        className="p-4 rounded-lg border border-border bg-card cursor-pointer hover:bg-secondary/50 transition-colors"
+                      >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <div
@@ -781,6 +795,17 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           }}
         />
       )}
+      <EditAttendanceDialog
+        open={showEditAttendanceDialog}
+        onOpenChange={setShowEditAttendanceDialog}
+        attendance={selectedAttendance}
+        onSaveSuccess={() => {
+          refreshAttendance()
+          refreshEmployee()
+          refreshStats()
+          setSelectedAttendance(null)
+        }}
+      />
     </div>
   )
 }

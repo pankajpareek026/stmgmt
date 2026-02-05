@@ -63,7 +63,9 @@ export function MarkEmployeeAttendanceDialog({
 
             // Check if this attendance record matches our employee and selected project
             if (attEmpId === employee.id && attProjId === formData.projectId) {
-                existingDates.push(new Date(att.date))
+                // Parse date string components separately to avoid timezone issues
+                const [year, month, day] = att.date.split('-');
+                existingDates.push(new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0))
             }
         })
 
@@ -108,7 +110,11 @@ export function MarkEmployeeAttendanceDialog({
 
             // Loop through each selected date
             for (const date of selectedDates) {
-                const dateStr = date.toISOString().split('T')[0]
+                // Convert to local date string (YYYY-MM-DD) without timezone conversion
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
 
                 const project = (projects || []).find(p => p.id === formData.projectId)
                 const record = {
