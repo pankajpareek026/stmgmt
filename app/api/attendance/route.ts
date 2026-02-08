@@ -1,5 +1,7 @@
 import { connectDB } from '@/lib/db/connect';
 import Attendance from '@/lib/models/Attendance';
+import Employee from '@/lib/models/Employee'; // Registering for populate
+import Project from '@/lib/models/Project';   // Registering for populate
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -58,6 +60,19 @@ export async function POST(request: NextRequest) {
                 );
             }
             records = [body];
+        }
+
+        // Validate that each record has an employeeId and projectId
+        for (const record of records) {
+            if (!record.employeeId || !record.projectId) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Missing required fields: employeeId or projectId in one of the records'
+                    },
+                    { status: 400 }
+                );
+            }
         }
 
         // Create bulk operations

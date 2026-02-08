@@ -1,5 +1,7 @@
 import { connectDB } from '@/lib/db/connect';
 import Payroll from '@/lib/models/Payroll';
+import '@/lib/models/Employee'; // Register for populate
+import '@/lib/models/Project';  // Register for populate
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -10,10 +12,18 @@ export async function GET(request: NextRequest) {
             .populate('employeeId', 'name role')
             .populate('payments.projectId', 'name');
 
+        const transformedPayrolls = payrolls.map((p: any) => {
+            const doc = p.toObject ? p.toObject() : p;
+            return {
+                ...doc,
+                id: doc.id || doc._id?.toString() || doc._id
+            };
+        });
+
         return NextResponse.json({
             success: true,
-            count: payrolls.length,
-            data: payrolls
+            count: transformedPayrolls.length,
+            data: transformedPayrolls
         });
     } catch (error) {
         console.error('Error fetching payrolls:', error);

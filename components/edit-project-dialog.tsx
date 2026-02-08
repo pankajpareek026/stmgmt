@@ -81,7 +81,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSaveSuccess }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>Edit Project</DialogTitle>
                 </DialogHeader>

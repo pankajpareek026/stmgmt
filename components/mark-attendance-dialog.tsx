@@ -56,6 +56,7 @@ const AttendanceRow = ({
   attendance: AttendanceEntry
   updateAttendance: (id: string, updates: Partial<AttendanceEntry>) => void
 }) => {
+  const { formatCurrency } = useCurrency()
   const [isExpanded, setIsExpanded] = useState(false)
   const status = attendance?.status || "present"
   const isTemp = "isTemporary" in employee
@@ -397,7 +398,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, projectId, onSaveSucc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
         <DialogHeader className="p-6 pb-2 shrink-0 border-b">
           <DialogTitle>Mark Daily Attendance</DialogTitle>
         </DialogHeader>

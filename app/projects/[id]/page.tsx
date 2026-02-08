@@ -111,9 +111,14 @@ function ProjectDetailContent({ id }: { id: string }) {
 
   const projectEmployees = (project.employeeIds || [])
     .map((e: any) => {
+      if (!e) return null
       // If e is an object (populated), return it. If it's a string, find it in employeesData.
       if (typeof e === 'object' && e !== null) return e as Employee
-      return (employeesData || []).find((emp: Employee) => (emp.id || (emp as any)._id) === e)
+      return (employeesData || []).find((emp: Employee) => {
+        if (!emp) return false
+        const empId = emp.id || (emp as any)._id
+        return empId === e
+      })
     })
     .filter((e): e is Employee => e !== null && e !== undefined) as Employee[]
   const projectExpenses = (expensesData || []).filter((e: Expense) => e.projectId === id)
@@ -139,6 +144,13 @@ function ProjectDetailContent({ id }: { id: string }) {
 
   const formatDayCount = (value: number) => (Number.isInteger(value) ? `${value}` : value.toFixed(1))
 
+  // Utility to safely get ID from a potentially populated field
+  const getSafeId = (obj: any) => {
+    if (!obj) return null;
+    if (typeof obj === 'string') return obj;
+    return obj.id || obj._id || null;
+  }
+
   // Use the calculated spent value from API (sum of approved expenses)
   const totalSpend = project.spent || 0
   const budgetPercent = project.budget > 0 ? (totalSpend / project.budget) * 100 : 0
@@ -159,12 +171,10 @@ function ProjectDetailContent({ id }: { id: string }) {
   // Calculate total project payments and earnings
   const projectTotalEarned = projectEmployees.reduce((sum, emp) => {
     if (!emp) return sum;
-    const empId = emp.id || (emp as any)._id;
+    const empId = getSafeId(emp);
     if (!empId) return sum;
     const empAtt = projectAttendance.filter((att: any) => {
-      const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
-        ? (att.employeeId as any)._id || (att.employeeId as any).id
-        : att.employeeId;
+      const attEmpId = getSafeId(att.employeeId);
       return attEmpId === empId;
     });
     return sum + empAtt.reduce((s: number, att: any) => {
@@ -177,19 +187,15 @@ function ProjectDetailContent({ id }: { id: string }) {
 
   const projectTotalPaid = projectEmployees.reduce((sum, emp) => {
     if (!emp) return sum;
-    const empId = emp.id || (emp as any)._id;
+    const empId = getSafeId(emp);
     if (!empId) return sum;
     let paid = 0;
     if (payrollData && payrollData.length > 0) {
       payrollData.forEach((p: any) => {
-        const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null
-          ? (p.employeeId as any)._id || (p.employeeId as any).id
-          : p.employeeId;
+        const pEmpId = getSafeId(p.employeeId);
         if (pEmpId === empId && p.payments) {
           p.payments.forEach((pay: any) => {
-            const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null
-              ? (pay.projectId as any)._id || (pay.projectId as any).id
-              : pay.projectId;
+            const pProjId = getSafeId(pay.projectId);
             if (pProjId === id || !pProjId) {
               paid += pay.amount || 0;
             }
@@ -814,16 +820,15 @@ function ProjectDetailContent({ id }: { id: string }) {
                               </td>
                               <td className="py-3 px-2 text-right text-sm text-green-600">
                                 {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                                  if (!emp) return sum;
-                                  const empId = emp.id || (emp as any)._id;
+                                  const empId = getSafeId(emp);
                                   if (!empId) return sum;
                                   let paid = 0;
                                   if (payrollData) {
                                     payrollData.forEach((p: any) => {
-                                      const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                      const pEmpId = getSafeId(p.employeeId);
                                       if (pEmpId === empId && p.payments) {
                                         p.payments.forEach((pay: any) => {
-                                          const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                          const pProjId = getSafeId(pay.projectId);
                                           if (pProjId === id || !pProjId) paid += pay.amount || 0;
                                         });
                                       }
@@ -834,11 +839,10 @@ function ProjectDetailContent({ id }: { id: string }) {
                               </td>
                               <td className="py-3 px-2 text-right text-sm text-orange-600">
                                 {formatDayCount(projectEmployees.reduce((sum, emp) => {
-                                  if (!emp) return sum;
-                                  const empId = emp.id || (emp as any)._id;
+                                  const empId = getSafeId(emp);
                                   if (!empId) return sum;
                                   const empAtt = projectAttendance.filter((att: any) => {
-                                    const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                    const attEmpId = getSafeId(att.employeeId);
                                     return attEmpId === empId;
                                   });
                                   const attendanceUnits = empAtt.reduce((s: number, att: any) => {
@@ -849,10 +853,10 @@ function ProjectDetailContent({ id }: { id: string }) {
                                   let paid = 0;
                                   if (payrollData) {
                                     payrollData.forEach((p: any) => {
-                                      const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
+                                      const pEmpId = getSafeId(p.employeeId);
                                       if (pEmpId === empId && p.payments) {
                                         p.payments.forEach((pay: any) => {
-                                          const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
+                                          const pProjId = getSafeId(pay.projectId);
                                           if (pProjId === id || !pProjId) paid += pay.amount || 0;
                                         });
                                       }

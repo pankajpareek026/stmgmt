@@ -135,7 +135,7 @@ export function ManageMembersDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] h-[80vh] flex flex-col p-0">
+            <DialogContent className="sm:max-w-[500px] h-[80vh] flex flex-col p-0" aria-describedby={undefined}>
                 <DialogHeader className="p-6 pb-2 shrink-0 border-b">
                     <DialogTitle className="flex items-center gap-2">
                         <Users className="h-5 w-5 text-primary" />
