@@ -109,14 +109,14 @@ function ProjectDetailContent({ id }: { id: string }) {
     )
   }
 
-  const projectEmployees = (project.employeeIds || [])
+  const projectEmployees = (project?.employeeIds || [])
     .map((e: any) => {
       if (!e) return null
       // If e is an object (populated), return it. If it's a string, find it in employeesData.
       if (typeof e === 'object' && e !== null) return e as Employee
       return (employeesData || []).find((emp: Employee) => {
         if (!emp) return false
-        const empId = emp.id || (emp as any)._id
+        const empId = emp?.id || (emp as any)?._id
         return empId === e
       })
     })
@@ -125,21 +125,21 @@ function ProjectDetailContent({ id }: { id: string }) {
 
   // Fix: Handle populated projectId (can be object or string)
   const projectAttendance = (attendanceData || []).filter((a: Attendance) => {
-    const attProjectId = typeof a.projectId === 'object' && a.projectId !== null
-      ? (a.projectId as any)._id || (a.projectId as any).id
-      : a.projectId;
+    const attProjectId = typeof a?.projectId === 'object' && a?.projectId !== null
+      ? (a?.projectId as any)?._id || (a?.projectId as any)?.id
+      : a?.projectId;
     return attProjectId === id;
   })
 
   // Helper functions to handle both flat mock data and populated API data
   const getEmployeeName = (att: any) => {
     if (att.employeeName) return att.employeeName
-    return att.employeeId?.name || "Unknown Employee"
+    return att?.employeeId?.name || "Unknown Employee"
   }
 
   const getProjectName = (att: any) => {
     if (att.projectName) return att.projectName
-    return att.projectId?.name || "Unknown Project"
+    return att?.projectId?.name || "Unknown Project"
   }
 
   const formatDayCount = (value: number) => (Number.isInteger(value) ? `${value}` : value.toFixed(1))
@@ -152,20 +152,20 @@ function ProjectDetailContent({ id }: { id: string }) {
   }
 
   // Use the calculated spent value from API (sum of approved expenses)
-  const totalSpend = project.spent || 0
-  const budgetPercent = project.budget > 0 ? (totalSpend / project.budget) * 100 : 0
+  const totalSpend = project?.spent || 0
+  const budgetPercent = project?.budget > 0 ? (totalSpend / project?.budget) * 100 : 0
 
-  const totalHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + a.hours, 0)
-  const totalOvertimeHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + a.overtime, 0)
+  const totalHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + (a?.hours || 0), 0)
+  const totalOvertimeHours = projectAttendance.reduce((sum: number, a: Attendance) => sum + (a?.overtime || 0), 0)
   const presentToday = projectAttendance.filter((a: Attendance) => {
     const today = new Date().toISOString().split("T")[0]
-    const recordDate = new Date(a.date).toISOString().split("T")[0]
-    return recordDate === today && (a.status === "present" || a.status === "overtime")
+    const recordDate = new Date(a?.date).toISOString().split("T")[0]
+    return recordDate === today && (a?.status === "present" || a?.status === "overtime")
   }).length
   const overtimeToday = projectAttendance.filter((a: Attendance) => {
     const today = new Date().toISOString().split("T")[0]
-    const recordDate = new Date(a.date).toISOString().split("T")[0]
-    return recordDate === today && a.status === "overtime"
+    const recordDate = new Date(a?.date).toISOString().split("T")[0]
+    return recordDate === today && a?.status === "overtime"
   }).length
 
   // Calculate total project payments and earnings
@@ -174,13 +174,13 @@ function ProjectDetailContent({ id }: { id: string }) {
     const empId = getSafeId(emp);
     if (!empId) return sum;
     const empAtt = projectAttendance.filter((att: any) => {
-      const attEmpId = getSafeId(att.employeeId);
+      const attEmpId = getSafeId(att?.employeeId);
       return attEmpId === empId;
     });
     return sum + empAtt.reduce((s: number, att: any) => {
-      const rate = emp.dailyRate || 0;
-      if (att.status === 'present') return s + rate;
-      if (att.status === 'half-day') return s + (rate / 2);
+      const rate = emp?.dailyRate || 0;
+      if (att?.status === 'present') return s + rate;
+      if (att?.status === 'half-day') return s + (rate / 2);
       return s;
     }, 0);
   }, 0);
@@ -192,12 +192,12 @@ function ProjectDetailContent({ id }: { id: string }) {
     let paid = 0;
     if (payrollData && payrollData.length > 0) {
       payrollData.forEach((p: any) => {
-        const pEmpId = getSafeId(p.employeeId);
-        if (pEmpId === empId && p.payments) {
-          p.payments.forEach((pay: any) => {
-            const pProjId = getSafeId(pay.projectId);
+        const pEmpId = getSafeId(p?.employeeId);
+        if (pEmpId === empId && p?.payments) {
+          p?.payments.forEach((pay: any) => {
+            const pProjId = getSafeId(pay?.projectId);
             if (pProjId === id || !pProjId) {
-              paid += pay.amount || 0;
+              paid += pay?.amount || 0;
             }
           });
         }
@@ -222,15 +222,15 @@ function ProjectDetailContent({ id }: { id: string }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-balance">{project.name}</h1>
-            <Badge variant="outline" className={cn(statusColors[project.status as keyof typeof statusColors])}>
-              {project.status}
+            <h1 className="text-3xl font-bold text-balance">{project?.name}</h1>
+            <Badge variant="outline" className={cn(statusColors[project?.status as keyof typeof statusColors])}>
+              {project?.status}
             </Badge>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
-              <span>{project.location}</span>
+              <span>{project?.location}</span>
             </div>
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
@@ -284,7 +284,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Completion</p>
-                        <p className="text-2xl font-bold">{project.completion}%</p>
+                        <p className="text-2xl font-bold">{project?.completion}%</p>
                       </div>
                     </div>
                   </CardContent>
@@ -298,7 +298,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Budget</p>
-                        <p className="text-2xl font-bold">{formatCompact(project.budget)}</p>
+                        <p className="text-2xl font-bold">{formatCompact(project?.budget)}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -372,8 +372,8 @@ function ProjectDetailContent({ id }: { id: string }) {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Project Timeline</span>
                       <span className="text-sm text-muted-foreground">
-                        {new Date(project.startDate).toLocaleDateString()} -{" "}
-                        {new Date(project.endDate).toLocaleDateString()}
+                        {new Date(project?.startDate).toLocaleDateString()} -{" "}
+                        {new Date(project?.endDate).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -381,7 +381,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                       <span>
                         Duration:{" "}
                         {Math.ceil(
-                          (new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) /
+                          (new Date(project?.endDate).getTime() - new Date(project?.startDate).getTime()) /
                           (1000 * 60 * 60 * 24),
                         )}{" "}
                         days
@@ -393,7 +393,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Budget Progress</span>
                       <span className="text-sm font-semibold">
-                        {formatCompact(totalSpend)} / {formatCompact(project.budget)}
+                        {formatCompact(totalSpend)} / {formatCompact(project?.budget)}
                       </span>
                     </div>
                     <Progress
@@ -414,9 +414,9 @@ function ProjectDetailContent({ id }: { id: string }) {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Completion Progress</span>
-                      <span className="text-sm font-semibold">{project.completion}%</span>
+                      <span className="text-sm font-semibold">{project?.completion}%</span>
                     </div>
-                    <Progress value={project.completion} className="h-2" />
+                    <Progress value={project?.completion} className="h-2" />
                   </div>
                 </CardContent>
               </CollapsibleContent>
@@ -450,21 +450,21 @@ function ProjectDetailContent({ id }: { id: string }) {
                           className="flex items-center justify-between py-2 border-b border-border last:border-0"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{expense.description}</p>
-                            <p className="text-xs text-muted-foreground">{expense.category}</p>
+                            <p className="text-sm font-medium truncate">{expense?.description}</p>
+                            <p className="text-xs text-muted-foreground">{expense?.category}</p>
                           </div>
                           <div className="text-right ml-4">
-                            <p className="text-sm font-semibold">{formatCurrency(expense.amount)}</p>
+                            <p className="text-sm font-semibold">{formatCurrency(expense?.amount)}</p>
                             <Badge
                               variant="outline"
                               className={cn(
                                 "text-xs",
-                                expense.status === "approved" && "bg-green-500/10 text-green-500",
-                                expense.status === "pending" && "bg-yellow-500/10 text-yellow-500",
-                                expense.status === "rejected" && "bg-red-500/10 text-red-500",
+                                expense?.status === "approved" && "bg-green-500/10 text-green-500",
+                                expense?.status === "pending" && "bg-yellow-500/10 text-yellow-500",
+                                expense?.status === "rejected" && "bg-red-500/10 text-red-500",
                               )}
                             >
-                              {expense.status}
+                              {expense?.status}
                             </Badge>
                           </div>
                         </div>
@@ -538,7 +538,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                             <tbody>
                               {projectAttendance.map((record: Attendance) => (
                                 <tr
-                                  key={record.id}
+                                  key={record?.id}
                                   className="border-b border-border/50 last:border-0 hover:bg-secondary/50"
                                 >
                                   <td className="py-3 px-2">
@@ -546,26 +546,26 @@ function ProjectDetailContent({ id }: { id: string }) {
                                   </td>
                                   <td className="py-3 px-2">
                                     <p className="text-sm text-muted-foreground">
-                                      {new Date(record.date).toLocaleDateString()}
+                                      {new Date(record?.date).toLocaleDateString()}
                                     </p>
                                   </td>
                                   <td className="py-3 px-2">
-                                    <p className="text-sm">{record.checkIn}</p>
+                                    <p className="text-sm">{record?.checkIn}</p>
                                   </td>
                                   <td className="py-3 px-2">
-                                    <p className="text-sm">{record.checkOut}</p>
+                                    <p className="text-sm">{record?.checkOut}</p>
                                   </td>
                                   <td className="py-3 px-2 text-right">
-                                    <p className="text-sm font-medium">{record.hours}h</p>
+                                    <p className="text-sm font-medium">{record?.hours}h</p>
                                   </td>
                                   <td className="py-3 px-2 text-right">
                                     <p
                                       className={cn(
                                         "text-sm font-medium",
-                                        record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
+                                        record?.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
                                       )}
                                     >
-                                      {record.overtime > 0 ? `+${record.overtime}h` : "-"}
+                                      {record?.overtime > 0 ? `+${record?.overtime}h` : "-"}
                                     </p>
                                   </td>
                                   <td className="py-3 px-2 text-center">
@@ -573,15 +573,15 @@ function ProjectDetailContent({ id }: { id: string }) {
                                       variant="outline"
                                       className={cn(
                                         "text-xs",
-                                        record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
-                                        record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
-                                        record.status === "half-day" &&
+                                        record?.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
+                                        record?.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
+                                        record?.status === "half-day" &&
                                         "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-                                        record.status === "overtime" &&
+                                        record?.status === "overtime" &&
                                         "bg-amber-500/10 text-amber-500 border-amber-500/20",
                                       )}
                                     >
-                                      {record.status}
+                                      {record?.status}
                                     </Badge>
                                   </td>
                                 </tr>
@@ -593,49 +593,49 @@ function ProjectDetailContent({ id }: { id: string }) {
                         {/* Mobile View - Cards */}
                         <div className="md:hidden space-y-3">
                           {projectAttendance.map((record: Attendance) => (
-                            <div key={record.id} className="p-4 rounded-lg border border-border bg-card">
+                            <div key={record?.id} className="p-4 rounded-lg border border-border bg-card">
                               <div className="flex items-start justify-between mb-3">
                                 <div>
                                   <p className="font-medium text-sm">{getEmployeeName(record)}</p>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    {new Date(record.date).toLocaleDateString()}
+                                    {new Date(record?.date).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <Badge
                                   variant="outline"
                                   className={cn(
                                     "text-xs",
-                                    record.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
-                                    record.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
-                                    record.status === "half-day" && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-                                    record.status === "overtime" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                                    record?.status === "present" && "bg-green-500/10 text-green-500 border-green-500/20",
+                                    record?.status === "absent" && "bg-red-500/10 text-red-500 border-red-500/20",
+                                    record?.status === "half-day" && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+                                    record?.status === "overtime" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
                                   )}
                                 >
-                                  {record.status}
+                                  {record?.status}
                                 </Badge>
                               </div>
                               <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                   <p className="text-xs text-muted-foreground">Check In</p>
-                                  <p className="font-medium">{record.checkIn}</p>
+                                  <p className="font-medium">{record?.checkIn}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-muted-foreground">Check Out</p>
-                                  <p className="font-medium">{record.checkOut}</p>
+                                  <p className="font-medium">{record?.checkOut}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-muted-foreground">Hours Worked</p>
-                                  <p className="font-semibold">{record.hours}h</p>
+                                  <p className="font-semibold">{record?.hours}h</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-muted-foreground">Overtime</p>
                                   <p
                                     className={cn(
                                       "font-semibold",
-                                      record.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
+                                      record?.overtime > 0 ? "text-yellow-500" : "text-muted-foreground",
                                     )}
                                   >
-                                    {record.overtime > 0 ? `+${record.overtime}h` : "-"}
+                                    {record?.overtime > 0 ? `+${record?.overtime}h` : "-"}
                                   </p>
                                 </div>
                               </div>
@@ -695,24 +695,24 @@ function ProjectDetailContent({ id }: { id: string }) {
 
                               // Calculate attendance count for this employee on this project
                               const employeeAttendance = projectAttendance.filter((att: any) => {
-                                const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
-                                  ? (att.employeeId as any)._id || (att.employeeId as any).id
-                                  : att.employeeId;
+                                const attEmpId = typeof att?.employeeId === 'object' && att?.employeeId !== null
+                                  ? (att?.employeeId as any)?._id || (att?.employeeId as any)?.id
+                                  : att?.employeeId;
                                 return attEmpId === empId;
                               });
 
                               const attendanceDays = employeeAttendance.length;
                               const attendanceUnits = employeeAttendance.reduce((sum: number, att: any) => {
-                                if (att.status === 'present') return sum + 1;
-                                if (att.status === 'half-day') return sum + 0.5;
+                                if (att?.status === 'present') return sum + 1;
+                                if (att?.status === 'half-day') return sum + 0.5;
                                 return sum;
                               }, 0);
 
                               // Calculate total earned based on attendance and daily rate
                               const totalEarned = employeeAttendance.reduce((sum: number, att: any) => {
-                                const dailyRate = employee.dailyRate || 0;
-                                if (att.status === 'present') return sum + dailyRate;
-                                if (att.status === 'half-day') return sum + (dailyRate / 2);
+                                const dailyRate = employee?.dailyRate || 0;
+                                if (att?.status === 'present') return sum + dailyRate;
+                                if (att?.status === 'half-day') return sum + (dailyRate / 2);
                                 return sum;
                               }, 0);
 
@@ -720,19 +720,17 @@ function ProjectDetailContent({ id }: { id: string }) {
                               let totalPaid = 0;
                               if (payrollData && payrollData.length > 0) {
                                 payrollData.forEach((payroll: any) => {
-                                  const payrollEmpId = typeof payroll.employeeId === 'object' && payroll.employeeId !== null
-                                    ? (payroll.employeeId as any)._id || (payroll.employeeId as any).id
-                                    : payroll.employeeId;
-
-                                  if (payrollEmpId === empId && payroll.payments) {
-                                    payroll.payments.forEach((payment: any) => {
-                                      const paymentProjId = typeof payment.projectId === 'object' && payment.projectId !== null
-                                        ? (payment.projectId as any)._id || (payment.projectId as any).id
-                                        : payment.projectId;
-
+                                  const payrollEmpId = typeof payroll?.employeeId === 'object' && payroll?.employeeId !== null
+                                    ? (payroll?.employeeId as any)?._id || (payroll?.employeeId as any)?.id
+                                    : payroll?.employeeId;
+                                  if (payrollEmpId === empId && payroll?.payments) {
+                                    payroll?.payments.forEach((payment: any) => {
+                                      const paymentProjId = typeof payment?.projectId === 'object' && payment?.projectId !== null
+                                        ? (payment?.projectId as any)?._id || (payment?.projectId as any)?.id
+                                        : payment?.projectId;
                                       // Include project-specific payments and general payments (no projectId)
                                       if (paymentProjId === id || !paymentProjId) {
-                                        totalPaid += payment.amount || 0;
+                                        totalPaid += payment?.amount || 0;
                                       }
                                     });
                                   }
@@ -740,7 +738,7 @@ function ProjectDetailContent({ id }: { id: string }) {
                               }
 
                               const pendingAmount = Math.max(0, totalEarned - totalPaid);
-                              const dailyRate = employee.dailyRate || 0;
+                              const dailyRate = employee?.dailyRate || 0;
                               const paidUnits = dailyRate > 0 ? totalPaid / dailyRate : 0;
                               const pendingUnits = Math.max(0, attendanceUnits - paidUnits);
 
@@ -753,12 +751,12 @@ function ProjectDetailContent({ id }: { id: string }) {
                                     <div className="flex items-center gap-2">
                                       <Avatar className="h-7 w-7">
                                         <AvatarFallback className="bg-secondary text-xs">
-                                          {employee.name.split(" ").map((n: string) => n[0]).join("")}
+                                          {employee?.name?.split(" ").map((n: string) => n[0]).join("")}
                                         </AvatarFallback>
                                       </Avatar>
                                       <div>
-                                        <p className="text-sm font-medium">{employee.name}</p>
-                                        <p className="text-xs text-muted-foreground">{employee.role}</p>
+                                        <p className="text-sm font-medium">{employee?.name}</p>
+                                        <p className="text-xs text-muted-foreground">{employee?.role}</p>
                                       </div>
                                     </div>
                                   </td>
@@ -802,18 +800,18 @@ function ProjectDetailContent({ id }: { id: string }) {
                               <td className="py-3 px-2 text-right text-sm text-blue-600">
                                 {formatCurrency(projectEmployees.reduce((sum, emp) => {
                                   if (!emp) return sum;
-                                  const empId = emp.id || (emp as any)._id;
+                                  const empId = getSafeId(emp);
                                   if (!empId) return sum;
                                   const empAtt = projectAttendance.filter((att: any) => {
-                                    const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null
-                                      ? (att.employeeId as any)._id || (att.employeeId as any).id
-                                      : att.employeeId;
+                                    const attEmpId = typeof att?.employeeId === 'object' && att?.employeeId !== null
+                                      ? (att?.employeeId as any)?._id || (att?.employeeId as any)?.id
+                                      : att?.employeeId;
                                     return attEmpId === empId;
                                   });
                                   return sum + empAtt.reduce((s: number, att: any) => {
-                                    const rate = emp.dailyRate || 0;
-                                    if (att.status === 'present') return s + rate;
-                                    if (att.status === 'half-day') return s + (rate / 2);
+                                    const rate = emp?.dailyRate || 0;
+                                    if (att?.status === 'present') return s + rate;
+                                    if (att?.status === 'half-day') return s + (rate / 2);
                                     return s;
                                   }, 0);
                                 }, 0))}
@@ -825,11 +823,11 @@ function ProjectDetailContent({ id }: { id: string }) {
                                   let paid = 0;
                                   if (payrollData) {
                                     payrollData.forEach((p: any) => {
-                                      const pEmpId = getSafeId(p.employeeId);
-                                      if (pEmpId === empId && p.payments) {
-                                        p.payments.forEach((pay: any) => {
-                                          const pProjId = getSafeId(pay.projectId);
-                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                      const pEmpId = getSafeId(p?.employeeId);
+                                      if (pEmpId === empId && p?.payments) {
+                                        p?.payments.forEach((pay: any) => {
+                                          const pProjId = getSafeId(pay?.projectId);
+                                          if (pProjId === id || !pProjId) paid += pay?.amount || 0;
                                         });
                                       }
                                     });
@@ -846,23 +844,23 @@ function ProjectDetailContent({ id }: { id: string }) {
                                     return attEmpId === empId;
                                   });
                                   const attendanceUnits = empAtt.reduce((s: number, att: any) => {
-                                    if (att.status === 'present') return s + 1;
-                                    if (att.status === 'half-day') return s + 0.5;
+                                    if (att?.status === 'present') return s + 1;
+                                    if (att?.status === 'half-day') return s + 0.5;
                                     return s;
                                   }, 0);
                                   let paid = 0;
                                   if (payrollData) {
                                     payrollData.forEach((p: any) => {
-                                      const pEmpId = getSafeId(p.employeeId);
-                                      if (pEmpId === empId && p.payments) {
-                                        p.payments.forEach((pay: any) => {
-                                          const pProjId = getSafeId(pay.projectId);
-                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                      const pEmpId = getSafeId(p?.employeeId);
+                                      if (pEmpId === empId && p?.payments) {
+                                        p?.payments.forEach((pay: any) => {
+                                          const pProjId = getSafeId(pay?.projectId);
+                                          if (pProjId === id || !pProjId) paid += pay?.amount || 0;
                                         });
                                       }
                                     });
                                   }
-                                  const rate = emp.dailyRate || 0;
+                                  const rate = emp?.dailyRate || 0;
                                   const paidUnits = rate > 0 ? paid / rate : 0;
                                   return sum + Math.max(0, attendanceUnits - paidUnits);
                                 }, 0))}
@@ -871,31 +869,31 @@ function ProjectDetailContent({ id }: { id: string }) {
                                 {formatCurrency((() => {
                                   const totalEarned = projectEmployees.reduce((sum, emp) => {
                                     if (!emp) return sum;
-                                    const empId = emp.id || (emp as any)._id;
+                                    const empId = getSafeId(emp);
                                     if (!empId) return sum;
                                     const empAtt = projectAttendance.filter((att: any) => {
-                                      const attEmpId = typeof att.employeeId === 'object' && att.employeeId !== null ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                      const attEmpId = typeof att?.employeeId === 'object' && att?.employeeId !== null ? (att?.employeeId as any)?._id || (att?.employeeId as any)?.id : att?.employeeId;
                                       return attEmpId === empId;
                                     });
                                     return sum + empAtt.reduce((s: number, att: any) => {
-                                      const rate = emp.dailyRate || 0;
-                                      if (att.status === 'present') return s + rate;
-                                      if (att.status === 'half-day') return s + (rate / 2);
+                                      const rate = emp?.dailyRate || 0;
+                                      if (att?.status === 'present') return s + rate;
+                                      if (att?.status === 'half-day') return s + (rate / 2);
                                       return s;
                                     }, 0);
                                   }, 0);
                                   const totalPaid = projectEmployees.reduce((sum, emp) => {
                                     if (!emp) return sum;
-                                    const empId = emp.id || (emp as any)._id;
+                                    const empId = getSafeId(emp);
                                     if (!empId) return sum;
                                     let paid = 0;
                                     if (payrollData) {
                                       payrollData.forEach((p: any) => {
-                                        const pEmpId = typeof p.employeeId === 'object' && p.employeeId !== null ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                        if (pEmpId === empId && p.payments) {
-                                          p.payments.forEach((pay: any) => {
-                                            const pProjId = typeof pay.projectId === 'object' && pay.projectId !== null ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                            if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                        const pEmpId = typeof p?.employeeId === 'object' && p?.employeeId !== null ? (p?.employeeId as any)?._id || (p?.employeeId as any)?.id : p?.employeeId;
+                                        if (pEmpId === empId && p?.payments) {
+                                          p?.payments.forEach((pay: any) => {
+                                            const pProjId = typeof pay?.projectId === 'object' && pay?.projectId !== null ? (pay?.projectId as any)?._id || (pay?.projectId as any)?.id : pay?.projectId;
+                                            if (pProjId === id || !pProjId) paid += pay?.amount || 0;
                                           });
                                         }
                                       });
@@ -922,15 +920,15 @@ function ProjectDetailContent({ id }: { id: string }) {
                             return attEmpId === empId;
                           });
                           const attendanceUnits = employeeAttendance.reduce((sum: number, att: any) => {
-                            if (att.status === 'present') return sum + 1;
-                            if (att.status === 'half-day') return sum + 0.5;
+                            if (att?.status === 'present') return sum + 1;
+                            if (att?.status === 'half-day') return sum + 0.5;
                             return sum;
                           }, 0);
 
                           const totalEarned = employeeAttendance.reduce((sum: number, att: any) => {
                             const dailyRate = employee.dailyRate || 0;
-                            if (att.status === 'present') return sum + dailyRate;
-                            if (att.status === 'half-day') return sum + (dailyRate / 2);
+                            if (att?.status === 'present') return sum + dailyRate;
+                            if (att?.status === 'half-day') return sum + (dailyRate / 2);
                             return sum;
                           }, 0);
 
@@ -1031,15 +1029,16 @@ function ProjectDetailContent({ id }: { id: string }) {
                               <p className="text-xs text-muted-foreground">Total Earned</p>
                               <p className="text-lg font-semibold text-blue-600">
                                 {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                                  const empId = emp.id || (emp as any)._id;
+                                  const empId = getSafeId(emp);
+                                  if (!empId) return sum;
                                   const empAtt = projectAttendance.filter((att: any) => {
-                                    const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                    const attEmpId = getSafeId(att.employeeId);
                                     return attEmpId === empId;
                                   });
                                   return sum + empAtt.reduce((s: number, att: any) => {
-                                    const rate = emp.dailyRate || 0;
-                                    if (att.status === 'present') return s + rate;
-                                    if (att.status === 'half-day') return s + (rate / 2);
+                                    const rate = emp?.dailyRate || 0;
+                                    if (att?.status === 'present') return s + rate;
+                                    if (att?.status === 'half-day') return s + (rate / 2);
                                     return s;
                                   }, 0);
                                 }, 0))}
@@ -1049,15 +1048,16 @@ function ProjectDetailContent({ id }: { id: string }) {
                               <p className="text-xs text-muted-foreground">Total Paid</p>
                               <p className="text-lg font-semibold text-green-600">
                                 {formatCurrency(projectEmployees.reduce((sum, emp) => {
-                                  const empId = emp.id || (emp as any)._id;
+                                  const empId = getSafeId(emp);
+                                  if (!empId) return sum;
                                   let paid = 0;
                                   if (payrollData) {
                                     payrollData.forEach((p: any) => {
-                                      const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                      if (pEmpId === empId && p.payments) {
-                                        p.payments.forEach((pay: any) => {
-                                          const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                      const pEmpId = getSafeId(p?.employeeId);
+                                      if (pEmpId === empId && p?.payments) {
+                                        p?.payments.forEach((pay: any) => {
+                                          const pProjId = getSafeId(pay?.projectId);
+                                          if (pProjId === id || !pProjId) paid += pay?.amount || 0;
                                         });
                                       }
                                     });
@@ -1070,29 +1070,30 @@ function ProjectDetailContent({ id }: { id: string }) {
                               <p className="text-xs text-muted-foreground">Pending Days</p>
                               <p className="text-lg font-semibold text-orange-600">
                                 {formatDayCount(projectEmployees.reduce((sum, emp) => {
-                                  const empId = emp.id || (emp as any)._id;
+                                  const empId = getSafeId(emp);
+                                  if (!empId) return sum;
                                   const empAtt = projectAttendance.filter((att: any) => {
-                                    const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                    const attEmpId = getSafeId(att.employeeId);
                                     return attEmpId === empId;
                                   });
                                   const attendanceUnits = empAtt.reduce((s: number, att: any) => {
-                                    if (att.status === 'present') return s + 1;
-                                    if (att.status === 'half-day') return s + 0.5;
+                                    if (att?.status === 'present') return s + 1;
+                                    if (att?.status === 'half-day') return s + 0.5;
                                     return s;
                                   }, 0);
                                   let paid = 0;
                                   if (payrollData) {
                                     payrollData.forEach((p: any) => {
-                                      const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                      if (pEmpId === empId && p.payments) {
-                                        p.payments.forEach((pay: any) => {
-                                          const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                          if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                      const pEmpId = getSafeId(p?.employeeId);
+                                      if (pEmpId === empId && p?.payments) {
+                                        p?.payments.forEach((pay: any) => {
+                                          const pProjId = getSafeId(pay?.projectId);
+                                          if (pProjId === id || !pProjId) paid += pay?.amount || 0;
                                         });
                                       }
                                     });
                                   }
-                                  const rate = emp.dailyRate || 0;
+                                  const rate = emp?.dailyRate || 0;
                                   const paidUnits = rate > 0 ? paid / rate : 0;
                                   return sum + Math.max(0, attendanceUnits - paidUnits);
                                 }, 0))}
@@ -1103,28 +1104,30 @@ function ProjectDetailContent({ id }: { id: string }) {
                               <p className="text-lg font-bold text-orange-600">
                                 {formatCurrency((() => {
                                   const totalEarned = projectEmployees.reduce((sum, emp) => {
-                                    const empId = emp.id || (emp as any)._id;
+                                    const empId = getSafeId(emp);
+                                    if (!empId) return sum;
                                     const empAtt = projectAttendance.filter((att: any) => {
-                                      const attEmpId = typeof att.employeeId === 'object' ? (att.employeeId as any)._id || (att.employeeId as any).id : att.employeeId;
+                                      const attEmpId = getSafeId(att.employeeId);
                                       return attEmpId === empId;
                                     });
                                     return sum + empAtt.reduce((s: number, att: any) => {
-                                      const rate = emp.dailyRate || 0;
-                                      if (att.status === 'present') return s + rate;
-                                      if (att.status === 'half-day') return s + (rate / 2);
+                                      const rate = emp?.dailyRate || 0;
+                                      if (att?.status === 'present') return s + rate;
+                                      if (att?.status === 'half-day') return s + (rate / 2);
                                       return s;
                                     }, 0);
                                   }, 0);
                                   const totalPaid = projectEmployees.reduce((sum, emp) => {
-                                    const empId = emp.id || (emp as any)._id;
+                                    const empId = getSafeId(emp);
+                                    if (!empId) return sum;
                                     let paid = 0;
                                     if (payrollData) {
                                       payrollData.forEach((p: any) => {
-                                        const pEmpId = typeof p.employeeId === 'object' ? (p.employeeId as any)._id || (p.employeeId as any).id : p.employeeId;
-                                        if (pEmpId === empId && p.payments) {
-                                          p.payments.forEach((pay: any) => {
-                                            const pProjId = typeof pay.projectId === 'object' ? (pay.projectId as any)._id || (pay.projectId as any).id : pay.projectId;
-                                            if (pProjId === id || !pProjId) paid += pay.amount || 0;
+                                        const pEmpId = getSafeId(p?.employeeId);
+                                        if (pEmpId === empId && p?.payments) {
+                                          p?.payments.forEach((pay: any) => {
+                                            const pProjId = getSafeId(pay?.projectId);
+                                            if (pProjId === id || !pProjId) paid += pay?.amount || 0;
                                           });
                                         }
                                       });
@@ -1170,14 +1173,14 @@ function ProjectDetailContent({ id }: { id: string }) {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {project.manager
-                          .split(" ")
-                          .map((n: string) => n[0])
-                          .join("")}
+                        {project?.manager
+                          ?.split(" ")
+                          ?.map((n: string) => n[0])
+                          ?.join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold">{project.manager}</p>
+                      <p className="font-semibold">{project?.manager}</p>
                       <p className="text-sm text-muted-foreground">Site Manager</p>
                     </div>
                   </div>
@@ -1212,15 +1215,12 @@ function ProjectDetailContent({ id }: { id: string }) {
                         <div key={employee.id} className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
                             <AvatarFallback className="bg-secondary text-xs">
-                              {employee.name
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .join("")}
+                              {employee?.name?.split(" ")?.map((n: string) => n[0])?.join("")}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{employee.name}</p>
-                            <p className="text-xs text-muted-foreground">{employee.role}</p>
+                            <p className="text-sm font-medium truncate">{employee?.name}</p>
+                            <p className="text-xs text-muted-foreground">{employee?.role}</p>
                           </div>
                         </div>
                       ))
